@@ -1,9 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime
 import uuid
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+from mistralai import Mistral
+
+# Load environment variables from project root
+env_path = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 app = FastAPI(title="MTL Finder Chat API")
 
@@ -16,8 +24,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize Mistral client
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+
+if not MISTRAL_API_KEY:
+    print("Warning: MISTRAL_API_KEY not set. Chat will not work properly.")
+    mistral_client = None
+else:
+    mistral_client = Mistral(api_key=MISTRAL_API_KEY)
+
 # In-memory storage for user sessions
-# Key: session_id, Value: list of messages
+# Key: session_id, Value: list of messages (in Mistral API format)
 sessions: Dict[str, List[dict]] = {}
 
 
@@ -64,7 +82,14 @@ async def get_session_messages(session_id: str):
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(message: Message):
-    """Send a message and get a response"""
+    """Send a message and get a response from Mistral AI"""
+    # Check if Mistral client is initialized
+    if not mistral_client:
+        raise HTTPException(
+            status_code=503,
+            detail="Mistral API is not configured. Please set MISTRAL_API_KEY."
+        )
+
     # Initialize session if it doesn't exist
     if message.session_id not in sessions:
         sessions[message.session_id] = []
@@ -77,18 +102,49 @@ async def chat(message: Message):
     }
     sessions[message.session_id].append(user_message)
 
-    # Generate assistant response (placeholder - can integrate AI later)
-    assistant_message = {
-        "role": "assistant",
-        "content": f"Echo: {message.content}",
-        "timestamp": datetime.now().isoformat()
-    }
-    sessions[message.session_id].append(assistant_message)
+    try:
+        # Prepare messages for Mistral API (without timestamp)
+        mistral_messages = [
+            {"role": msg["role"], "content": msg["content"]}
+            for msg in sessions[message.session_id]
+        ]
 
-    return {
-        "session_id": message.session_id,
-        "messages": sessions[message.session_id]
-    }
+        # Call Mistral API
+        # Note: tools parameter can be added here in the future
+        response = mistral_client.chat.complete(
+            model=MISTRAL_MODEL,
+            messages=mistral_messages,
+        )
+
+        # Extract assistant response
+        assistant_content = response.choices[0].message.content
+
+        # Add assistant message to session
+        assistant_message = {
+            "role": "assistant",
+            "content": assistant_content,
+            "timestamp": datetime.now().isoformat()
+        }
+        sessions[message.session_id].append(assistant_message)
+
+        return {
+            "session_id": message.session_id,
+            "messages": sessions[message.session_id]
+        }
+
+    except Exception as e:
+        # If Mistral API fails, return error message
+        error_message = {
+            "role": "assistant",
+            "content": f"Error: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+        sessions[message.session_id].append(error_message)
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get response from Mistral AI: {str(e)}"
+        )
 
 
 @app.delete("/session/{session_id}")
