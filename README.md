@@ -4,6 +4,12 @@ Welcome to MTL Finder, an intelligent travel assistant for Montreal!
 
 This document provides a high-level overview of the project and serves as a central hub for navigating the detailed documentation.
 
+## Live Version
+
+You can access a live version of MTL Finder here: [https://mtl-finder.alexandredewilde.com/](https://mtl-finder.alexandredewilde.com/)
+
+> **Warning**: This live version is hosted on a personal machine and may not always be available.
+
 ## Table of Contents
 
 -   **[Installation Guide](docs/INSTALL.md)**
