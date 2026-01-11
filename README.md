@@ -6,41 +6,19 @@ This document provides a high-level overview of the project and serves as a cent
 
 ## Table of Contents
 
-## Live Version
-
-You can access a live version of MTL Finder here: [https://mtl-finder.alexandredewilde.com/](https://mtl-finder.alexandredewilde.com/)
-
-> **Warning**: This live version is hosted on a personal machine and may not always be available.
-
 -   **[Installation Guide](docs/INSTALL.md)**
-    -   Prerequisites
-    -   API Key Acquisition (Mistral AI, STM)
-    -   Scripted Installation
-    -   Manual Installation
+    -   [Prerequisites](docs/INSTALL.md#prerequisites)
+    -   [API Keys](docs/INSTALL.md#api-keys)
+    -   [Scripted Installation](docs/INSTALL.md#option-1-scripted-installation-recommended)
+    -   [Manual Installation](docs/INSTALL.md#option-2-manual-installation)
 -   **[Running the Application](docs/RUN.md)**
-    -   Starting OpenTripPlanner (OTP)
-    -   Starting Backend and Frontend
-    -   Accessing the Application
-    -   Configuration (`.env` variables)
-    -   OpenTripPlanner Management
+    -   [Starting the Application](docs/RUN.md#starting-the-application)
+    -   [Accessing the Application](docs/RUN.md#accessing-the-application)
+    -   [Configuration](docs/RUN.md#configuration)
+    -   [OpenTripPlanner Management](docs/RUN.md#opentripplanner-management)
 -   **[Architecture Overview](docs/ARCHITECTURE.md)**
-    -   Project Overview
-    -   Project Structure
-    -   Tools Architecture
-    -   System Prompt Strategy
-    -   Dependencies
--   **[Claude Development Guide](CLAUDE.md)**
-    -   Project Overview
-    -   Git Commit Conventions
-    -   Project Structure
-    -   Running the Application
-    -   Environment Variables
-    -   OpenTripPlanner Configuration
-    -   Tools Architecture
-    -   System Prompt Strategy
-    -   Dependencies
-    -   Common Issues
-    -   Testing
-    -   Todo List Tasks
-    -   Montreal Specific Data
-    -   Additional Resources
+    -   [Project Overview](docs/ARCHITECTURE.md#project-overview)
+    -   [Project Structure](docs/ARCHITECTURE.md#project-structure)
+    -   [Tools Architecture](docs/ARCHITECTURE.md#tools-architecture)
+    -   [System Prompt Strategy](docs/ARCHITECTURE.md#system-prompt-strategy)
+    -   [Dependencies](docs/ARCHITECTURE.md#dependencies)
