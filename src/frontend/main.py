@@ -25,7 +25,7 @@ if "session_id" not in st.session_state:
             st.session_state.session_id = response.json()["session_id"]
         else:
             st.session_state.session_id = str(uuid.uuid4())
-    except:
+    except requests.exceptions.RequestException:
         st.session_state.session_id = str(uuid.uuid4())
 
 if "messages" not in st.session_state:
@@ -39,7 +39,9 @@ if "location_requested" not in st.session_state:
 
 # App title and description
 st.title("🗺️ MTL Finder")
-st.caption("Your intelligent travel assistant for Montreal - powered by Mistral AI & OpenTripPlanner")
+st.caption(
+    "Your intelligent travel assistant for Montreal - powered by Mistral AI & OpenTripPlanner"
+)
 
 # Get user location only if not already obtained
 if st.session_state.user_location is None:
@@ -55,23 +57,36 @@ if st.session_state.user_location is None:
 
 # Show quick actions if no messages yet
 if len(st.session_state.messages) == 0:
-    st.info("💡 **Tip:** I can help you plan trips using metro, bus, bike, or walking. I'll check the weather to recommend the best option!")
+    st.info(
+        "💡 **Tip:** I can help you plan trips using metro, bus, bike, or walking. I'll check the weather to recommend the best option!"
+    )
 
     st.markdown("**Try asking:**")
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🚇 How do I get to Old Montreal?"):
-            st.session_state.messages.append({"role": "user", "content": "How do I get to Old Montreal?"})
+            st.session_state.messages.append(
+                {"role": "user", "content": "How do I get to Old Montreal?"}
+            )
             st.rerun()
         if st.button("🚲 Best bike route to Plateau?"):
-            st.session_state.messages.append({"role": "user", "content": "What's the best bike route to Plateau Mont-Royal?"})
+            st.session_state.messages.append(
+                {
+                    "role": "user",
+                    "content": "What's the best bike route to Plateau Mont-Royal?",
+                }
+            )
             st.rerun()
     with col2:
         if st.button("🌤️ What's the weather?"):
-            st.session_state.messages.append({"role": "user", "content": "What's the weather like right now?"})
+            st.session_state.messages.append(
+                {"role": "user", "content": "What's the weather like right now?"}
+            )
             st.rerun()
         if st.button("🏛️ Get to McGill University"):
-            st.session_state.messages.append({"role": "user", "content": "How do I get to McGill University?"})
+            st.session_state.messages.append(
+                {"role": "user", "content": "How do I get to McGill University?"}
+            )
             st.rerun()
 
     st.divider()
@@ -89,7 +104,10 @@ if user_input := st.chat_input("What would you like to know?"):
     prompt = user_input
     st.session_state.messages.append({"role": "user", "content": prompt})
     send_to_api = True
-elif len(st.session_state.messages) > 0 and st.session_state.messages[-1]["role"] == "user":
+elif (
+    len(st.session_state.messages) > 0
+    and st.session_state.messages[-1]["role"] == "user"
+):
     # Check if last message is from user (button click) and hasn't been processed
     if "last_processed_idx" not in st.session_state:
         st.session_state.last_processed_idx = -1
@@ -177,7 +195,7 @@ with st.sidebar:
     selected_dest = st.selectbox(
         "Quick destination select:",
         [""] + list(destinations.keys()),
-        format_func=lambda x: "Choose a destination..." if x == "" else x
+        format_func=lambda x: "Choose a destination..." if x == "" else x,
     )
 
     if selected_dest:

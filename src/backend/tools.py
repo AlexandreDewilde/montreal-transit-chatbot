@@ -4,7 +4,7 @@ Tools for Mistral AI function calling
 
 import requests
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from datetime import datetime
 from google.transit import gtfs_realtime_pb2
 
@@ -385,7 +385,6 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
             # Calculate average delay
             avg_delay = sum(delay_list) / len(delay_list)
             max_delay = max(delay_list)
-            min_delay = min(delay_list)
 
             # Create alert message
             delay_minutes = int(avg_delay / 60)
