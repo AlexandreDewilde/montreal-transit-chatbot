@@ -28,3 +28,9 @@ You can access a live version of MTL Finder here: [https://mtl-finder.alexandred
     -   [Tools Architecture](docs/ARCHITECTURE.md#tools-architecture)
     -   [System Prompt Strategy](docs/ARCHITECTURE.md#system-prompt-strategy)
     -   [Dependencies](docs/ARCHITECTURE.md#dependencies)
+
+## Future Enhancements
+
+-   [ ] BIXI integration (real-time availability and routing)
+-   [ ] Rideshare integration (Uber, Lyft)
+-   [ ] Clothing/shoe recommendations based on weather conditions
