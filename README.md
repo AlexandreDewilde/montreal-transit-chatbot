@@ -6,6 +6,12 @@ This document provides a high-level overview of the project and serves as a cent
 
 ## Table of Contents
 
+## Live Version
+
+You can access a live version of MTL Finder here: [https://mtl-finder.alexandredewilde.com/](https://mtl-finder.alexandredewilde.com/)
+
+> **Warning**: This live version is hosted on a personal machine and may not always be available.
+
 -   **[Installation Guide](docs/INSTALL.md)**
     -   Prerequisites
     -   API Key Acquisition (Mistral AI, STM)
