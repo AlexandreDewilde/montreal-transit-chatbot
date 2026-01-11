@@ -37,8 +37,9 @@ if "user_location" not in st.session_state:
 if "location_requested" not in st.session_state:
     st.session_state.location_requested = False
 
-# App title
-st.title("💬 MTL Finder Chat")
+# App title and description
+st.title("🗺️ MTL Finder")
+st.caption("Your intelligent travel assistant for Montreal - powered by Mistral AI & OpenTripPlanner")
 
 # Get user location only if not already obtained
 if st.session_state.user_location is None:
@@ -48,9 +49,32 @@ if st.session_state.user_location is None:
     if location and location.get("latitude") is not None:
         st.session_state.user_location = {
             "latitude": location["latitude"],
-            "longitude": location["longitude"]
+            "longitude": location["longitude"],
         }
         st.rerun()
+
+# Show quick actions if no messages yet
+if len(st.session_state.messages) == 0:
+    st.info("💡 **Tip:** I can help you plan trips using metro, bus, bike, or walking. I'll check the weather to recommend the best option!")
+
+    st.markdown("**Try asking:**")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🚇 How do I get to Old Montreal?"):
+            st.session_state.messages.append({"role": "user", "content": "How do I get to Old Montreal?"})
+            st.rerun()
+        if st.button("🚲 Best bike route to Plateau?"):
+            st.session_state.messages.append({"role": "user", "content": "What's the best bike route to Plateau Mont-Royal?"})
+            st.rerun()
+    with col2:
+        if st.button("🌤️ What's the weather?"):
+            st.session_state.messages.append({"role": "user", "content": "What's the weather like right now?"})
+            st.rerun()
+        if st.button("🏛️ Get to McGill University"):
+            st.session_state.messages.append({"role": "user", "content": "How do I get to McGill University?"})
+            st.rerun()
+
+    st.divider()
 
 # Display chat messages
 for message in st.session_state.messages:
@@ -69,10 +93,7 @@ if prompt := st.chat_input("What would you like to know?"):
         with st.spinner("Thinking..."):
             try:
                 # Prepare request payload
-                payload = {
-                    "content": prompt,
-                    "session_id": st.session_state.session_id
-                }
+                payload = {"content": prompt, "session_id": st.session_state.session_id}
 
                 # Add user location if available
                 if st.session_state.user_location:
@@ -112,24 +133,62 @@ if prompt := st.chat_input("What would you like to know?"):
 
 # Sidebar
 with st.sidebar:
-    st.header("Session Info")
-    st.caption(f"Session ID: {st.session_state.session_id[:8]}...")
-
-    st.divider()
-
-    st.header("Location")
+    st.header("📍 Your Location")
     if st.session_state.user_location:
         lat = st.session_state.user_location["latitude"]
         lon = st.session_state.user_location["longitude"]
-        st.success("Location detected")
-        st.caption(f"Lat: {lat:.4f}")
-        st.caption(f"Lon: {lon:.4f}")
+        st.success("✓ Location enabled")
+        st.caption(f"📍 {lat:.4f}, {lon:.4f}")
+        st.caption("I'll use your location as the starting point for routes!")
     else:
-        st.info("Location not available")
-        st.caption("Allow browser location access to enable weather features")
+        st.warning("⚠️ Location not available")
+        st.caption("Please allow browser location access to:")
+        st.caption("• Get weather for your area")
+        st.caption("• Use your location as trip starting point")
 
     st.divider()
 
-    if st.button("Clear Chat"):
-        st.session_state.messages = []
-        st.rerun()
+    st.header("🎯 Popular Destinations")
+    destinations = {
+        "Old Montreal": (45.5048, -73.5540),
+        "Mont-Royal Park": (45.5048, -73.5874),
+        "McGill University": (45.5048, -73.5762),
+        "Plateau Mont-Royal": (45.5262, -73.5782),
+        "Jean-Talon Market": (45.5356, -73.6135),
+        "Olympic Stadium": (45.5579, -73.5516),
+        "Atwater Market": (45.4771, -73.5818),
+    }
+
+    selected_dest = st.selectbox(
+        "Quick destination select:",
+        [""] + list(destinations.keys()),
+        format_func=lambda x: "Choose a destination..." if x == "" else x
+    )
+
+    if selected_dest:
+        if st.button(f"🗺️ Get directions to {selected_dest}"):
+            prompt = f"How do I get to {selected_dest}?"
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.rerun()
+
+    st.divider()
+
+    st.header("ℹ️ About")
+    st.caption("**MTL Finder** uses:")
+    st.caption("• Mistral AI for intelligent responses")
+    st.caption("• OpenTripPlanner for route planning")
+    st.caption("• Real-time STM transit data")
+    st.caption("• Open-Meteo for weather info")
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🗑️ Clear Chat"):
+            st.session_state.messages = []
+            st.rerun()
+    with col2:
+        if st.button("🔄 New Session"):
+            st.session_state.messages = []
+            st.session_state.session_id = str(uuid.uuid4())
+            st.rerun()
