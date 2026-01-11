@@ -1,7 +1,7 @@
 [project]
 name = "mtl-finder-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "FastAPI backend for the MTL Finder application"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
