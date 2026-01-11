@@ -26,13 +26,25 @@ You will need API keys from two services:
     -   **Get your key**: [STM Developer Portal](https://portail.developpeurs.stm.info/apihub)
     -   After registering, create an application to get your API key. Make sure to use the **API key**, not the `client_secret`.
 
+    #### Step-by-step Guide to get your STM key:
+
+    1.  **Navigate to the "Applications" section.**
+        ![Step 1](images/stm-keys/step-1.png)
+
+    2.  **Create a new application and add APIs needed.**
+        ![Step 2](images/stm-keys/step-2.png)
+
+    3.  **Create your API key in the application details and copy API key.**
+        ![Step 3](images/stm-keys/step-3.png)
+
+
 ## Option 1: Scripted Installation (Recommended)
 
 The `setup.sh` script automates the entire installation process.
 
 1.  **Clone the Repository**:
     ```bash
-    git clone <repository-url>
+    git clone git@github.com:AlexandreDewilde/montreal-transit-chatbot.git
     cd mistral-project
     ```
 
@@ -56,7 +68,7 @@ If you prefer to set up the project manually, follow these steps.
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone git@github.com:AlexandreDewilde/montreal-transit-chatbot.git
 cd mistral-project
 ```
 
