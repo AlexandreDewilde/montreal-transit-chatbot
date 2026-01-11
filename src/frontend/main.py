@@ -61,18 +61,18 @@ if len(st.session_state.messages) == 0:
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🚇 How do I get to Old Montreal?"):
-            st.session_state.messages.append({"role": "user", "content": "How do I get to Old Montreal?"})
-            st.rerun()
+            prompt = "How do I get to Old Montreal?"
+            st.session_state.messages.append({"role": "user", "content": prompt})
         if st.button("🚲 Best bike route to Plateau?"):
-            st.session_state.messages.append({"role": "user", "content": "What's the best bike route to Plateau Mont-Royal?"})
-            st.rerun()
+            prompt = "What's the best bike route to Plateau Mont-Royal?"
+            st.session_state.messages.append({"role": "user", "content": prompt})
     with col2:
         if st.button("🌤️ What's the weather?"):
-            st.session_state.messages.append({"role": "user", "content": "What's the weather like right now?"})
-            st.rerun()
+            prompt = "What's the weather like right now?"
+            st.session_state.messages.append({"role": "user", "content": prompt})
         if st.button("🏛️ Get to McGill University"):
-            st.session_state.messages.append({"role": "user", "content": "How do I get to McGill University?"})
-            st.rerun()
+            prompt = "How do I get to McGill University?"
+            st.session_state.messages.append({"role": "user", "content": prompt})
 
     st.divider()
 
@@ -81,13 +81,25 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Chat input
-if prompt := st.chat_input("What would you like to know?"):
-    # Add user message to chat
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+# Chat input or button click
+prompt = None
+send_to_api = False
 
+if user_input := st.chat_input("What would you like to know?"):
+    prompt = user_input
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    send_to_api = True
+elif len(st.session_state.messages) > 0 and st.session_state.messages[-1]["role"] == "user":
+    # Check if last message is from user (button click) and hasn't been processed
+    if "last_processed_idx" not in st.session_state:
+        st.session_state.last_processed_idx = -1
+    current_idx = len(st.session_state.messages) - 1
+    if current_idx > st.session_state.last_processed_idx:
+        prompt = st.session_state.messages[-1]["content"]
+        st.session_state.last_processed_idx = current_idx
+        send_to_api = True
+
+if send_to_api and prompt:
     # Send message to API and get response
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
