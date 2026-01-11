@@ -5,9 +5,13 @@ from typing import List, Dict, Optional
 from datetime import datetime
 import uuid
 import os
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 from mistralai import Mistral
+
+# Import tools
+from tools import TOOLS, execute_tool
 
 # Load environment variables from project root
 env_path = Path(__file__).parent.parent.parent / ".env"
@@ -39,9 +43,15 @@ else:
 sessions: Dict[str, List[dict]] = {}
 
 
+class UserLocation(BaseModel):
+    latitude: float
+    longitude: float
+
+
 class Message(BaseModel):
     content: str
     session_id: str
+    user_location: Optional[UserLocation] = None
 
 
 class ChatMessage(BaseModel):
@@ -94,10 +104,17 @@ async def chat(message: Message):
     if message.session_id not in sessions:
         sessions[message.session_id] = []
 
+    # Prepare user message content
+    user_content = message.content
+
+    # If user location is provided, append it to the system context
+    if message.user_location:
+        user_content = f"{message.content}\n\n[User's current location: Latitude {message.user_location.latitude}, Longitude {message.user_location.longitude}]"
+
     # Add user message to session
     user_message = {
         "role": "user",
-        "content": message.content,
+        "content": user_content,
         "timestamp": datetime.now().isoformat()
     }
     sessions[message.session_id].append(user_message)
@@ -109,14 +126,64 @@ async def chat(message: Message):
             for msg in sessions[message.session_id]
         ]
 
-        # Call Mistral API
-        # Note: tools parameter can be added here in the future
+        # Call Mistral API with tools
         response = mistral_client.chat.complete(
             model=MISTRAL_MODEL,
             messages=mistral_messages,
+            tools=TOOLS,
         )
 
-        # Extract assistant response
+        # Handle tool calls if needed
+        assistant_message_obj = response.choices[0].message
+
+        # Check if model wants to call tools
+        if assistant_message_obj.tool_calls:
+            # Add assistant's tool call message to conversation
+            tool_call_message = {
+                "role": "assistant",
+                "content": assistant_message_obj.content or "",
+                "tool_calls": [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments
+                        }
+                    }
+                    for tc in assistant_message_obj.tool_calls
+                ]
+            }
+            mistral_messages.append(tool_call_message)
+
+            # Execute each tool call
+            for tool_call in assistant_message_obj.tool_calls:
+                # Parse arguments
+                try:
+                    arguments = json.loads(tool_call.function.arguments)
+                except json.JSONDecodeError:
+                    arguments = {}
+
+                # Execute the tool
+                tool_result = execute_tool(tool_call.function.name, arguments)
+
+                # Add tool result to messages
+                tool_message = {
+                    "role": "tool",
+                    "name": tool_call.function.name,
+                    "content": json.dumps(tool_result),
+                    "tool_call_id": tool_call.id
+                }
+                mistral_messages.append(tool_message)
+
+            # Call Mistral again with tool results
+            response = mistral_client.chat.complete(
+                model=MISTRAL_MODEL,
+                messages=mistral_messages,
+                tools=TOOLS,
+            )
+
+        # Extract final assistant response
         assistant_content = response.choices[0].message.content
 
         # Add assistant message to session
