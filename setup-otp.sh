@@ -64,7 +64,7 @@ cat > otp-data/graphs/montreal/router-config.json <<'EOF'
     "walkSpeed": 1.3,
     "bikeSpeed": 5.0,
     "carSpeed": 40.0,
-    "numItineraries": 3,
+    "numItineraries": 5,
     "transferPenalty": 0,
     "waitReluctance": 0.95,
     "walkReluctance": 2.0,
@@ -72,9 +72,12 @@ cat > otp-data/graphs/montreal/router-config.json <<'EOF'
     "walkBoardCost": 60,
     "allowBikeRental": true,
     "bikeRentalPickupTime": 60,
-    "bikeRentalDropoffTime": 30
+    "bikeRentalDropoffTime": 30,
+    "maxTransfers": 5,
+    "searchWindow": "2h",
+    "itineraryFiltering": 1.5
   },
-  "timeout": 5,
+  "timeout": 10,
   "requestLogFile": "/var/otp/requestLog.csv"
 }
 EOF
