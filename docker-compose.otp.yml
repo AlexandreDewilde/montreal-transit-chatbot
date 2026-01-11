@@ -6,7 +6,7 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - ./otp-data/graphs/montreal:/var/opentripplanner
+      - ./otp-data:/var/opentripplanner
     environment:
       - JAVA_OPTIONS=-Xmx4G
     command: ["--build", "--save", "--serve"]
