@@ -61,18 +61,18 @@ if len(st.session_state.messages) == 0:
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🚇 How do I get to Old Montreal?"):
-            prompt = "How do I get to Old Montreal?"
-            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.messages.append({"role": "user", "content": "How do I get to Old Montreal?"})
+            st.rerun()
         if st.button("🚲 Best bike route to Plateau?"):
-            prompt = "What's the best bike route to Plateau Mont-Royal?"
-            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.messages.append({"role": "user", "content": "What's the best bike route to Plateau Mont-Royal?"})
+            st.rerun()
     with col2:
         if st.button("🌤️ What's the weather?"):
-            prompt = "What's the weather like right now?"
-            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.messages.append({"role": "user", "content": "What's the weather like right now?"})
+            st.rerun()
         if st.button("🏛️ Get to McGill University"):
-            prompt = "How do I get to McGill University?"
-            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.messages.append({"role": "user", "content": "How do I get to McGill University?"})
+            st.rerun()
 
     st.divider()
 
@@ -128,6 +128,7 @@ if send_to_api and prompt:
                         st.session_state.messages.append(
                             {"role": "assistant", "content": assistant_response}
                         )
+                        st.rerun()
                 else:
                     error_msg = (
                         f"Error: API returned status code {response.status_code}"
@@ -136,12 +137,14 @@ if send_to_api and prompt:
                     st.session_state.messages.append(
                         {"role": "assistant", "content": error_msg}
                     )
+                    st.rerun()
             except Exception as e:
                 error_msg = f"Error connecting to API: {str(e)}"
                 st.error(error_msg)
                 st.session_state.messages.append(
                     {"role": "assistant", "content": error_msg}
                 )
+                st.rerun()
 
 # Sidebar
 with st.sidebar:

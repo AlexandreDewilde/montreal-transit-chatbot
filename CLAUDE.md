@@ -18,12 +18,16 @@ All commits must follow this format:
 ```
 <type>(<scope>): <short description>
 
+Format: feat/fix/chore/docs/refactor/test/style(backend/frontend/config): concise description
+
 Examples:
-- feat(backend): add STM alerts tool for real-time delays
-- fix(frontend): correct location display formatting
+- feat(backend): add STM alerts tool
+- fix(frontend): correct location display
 - chore: update dependencies
 - docs: add API documentation
 ```
+
+**Important**: Keep commit names very concise - focus on what changed, not why or how.
 
 ### Types
 - `feat`: New feature
