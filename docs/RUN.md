@@ -6,40 +6,34 @@ This guide provides instructions on how to run the MTL Finder application, inclu
 
 Ensure you have completed the [installation steps](INSTALL.md) and that Docker is running.
 
-### 1. Start OpenTripPlanner (OTP)
+### Option 1: Using the `start.sh` Script (Recommended)
 
-OTP may take 5-10 minutes to build the graph on its first startup.
-
-```bash
-chmod +x start-otp.sh
-./start-otp.sh
-```
-
-### 2. Start Backend and Frontend
-
-You have two options to start the backend and frontend services:
-
-#### Option A: Using the `start.sh` Script (Recommended)
-
-The `start.sh` script will run both the backend (FastAPI) and frontend (Streamlit) services concurrently.
+The `start.sh` script will start all services concurrently: OpenTripPlanner (OTP), the FastAPI backend, and the Streamlit frontend. OTP may take 5-10 minutes to build the graph on its first startup.
 
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
 
-#### Option B: Manual Startup
+### Option 2: Manual Startup
 
-You can start the backend and frontend in separate terminal windows.
+You can start each service individually in separate terminal windows.
 
-**Start the Backend (FastAPI):**
+**1. Start OpenTripPlanner (OTP):**
+OTP may take 5-10 minutes to build the graph on its first startup.
+```bash
+docker-compose -f docker-compose.otp.yml up -d
+```
+You can monitor its status with `docker logs -f otp-montreal`.
+
+**2. Start the Backend (FastAPI):**
 ```bash
 cd src/backend
 uv run uvicorn main:app --reload --port ${API_PORT:-8000}
 ```
 *Note: Replace `${API_PORT:-8000}` with the actual port if you customized it in your `.env` file.*
 
-**Start the Frontend (Streamlit) in a new terminal:**
+**3. Start the Frontend (Streamlit) in a new terminal:**
 ```bash
 cd src/frontend
 uv run streamlit run main.py --server.port ${FRONTEND_PORT:-8501}
