@@ -1,0 +1,12 @@
+services:
+  opentripplanner:
+    image: docker.io/opentripplanner/opentripplanner:latest
+    container_name: otp-montreal
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    volumes:
+      - ./otp-data/graphs/montreal:/var/opentripplanner
+    environment:
+      - JAVA_OPTIONS=-Xmx4G
+    command: ["--build", "--save", "--serve"]
