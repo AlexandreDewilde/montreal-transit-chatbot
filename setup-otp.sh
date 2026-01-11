@@ -21,7 +21,11 @@ curl -L "https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pb
   -o otp-data/graphs/montreal/quebec.osm.pbf
 
 echo "Creating build-config.json..."
-cat > otp-data/graphs/montreal/build-config.json <<'EOF'
+
+# Load API key from .env
+source .env 2>/dev/null || true
+
+cat > otp-data/graphs/montreal/build-config.json <<EOF
 {
   "areaVisibility": true,
   "parentStopLinking": true,
@@ -30,6 +34,25 @@ cat > otp-data/graphs/montreal/build-config.json <<'EOF'
   "boardingLocationTags": [
     "ref",
     "name"
+  ],
+  "updaters": [
+    {
+      "type": "vehicle-rental",
+      "sourceType": "gbfs",
+      "network": "BIXI",
+      "url": "https://gbfs.velobixi.com/gbfs/gbfs.json",
+      "frequencySec": 60
+    },
+    {
+      "type": "stop-time-updater",
+      "frequencySec": 30,
+      "sourceType": "gtfs-http",
+      "url": "https://api.stm.info/pub/od/gtfs-rt/ic/v2/tripUpdates",
+      "feedId": "STM",
+      "headers": {
+        "apikey": "${STM_API_KEY}"
+      }
+    }
   ]
 }
 EOF
@@ -46,7 +69,10 @@ cat > otp-data/graphs/montreal/router-config.json <<'EOF'
     "waitReluctance": 0.95,
     "walkReluctance": 2.0,
     "stairsReluctance": 1.65,
-    "walkBoardCost": 60
+    "walkBoardCost": 60,
+    "allowBikeRental": true,
+    "bikeRentalPickupTime": 60,
+    "bikeRentalDropoffTime": 30
   },
   "timeout": 5,
   "requestLogFile": "/var/otp/requestLog.csv"
