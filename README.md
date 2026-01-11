@@ -2,7 +2,7 @@
 
 Welcome to MTL Finder, an intelligent travel assistant for Montreal!
 
-This document provides a high-level overview of the project and serves as a central hub for navigating the detailed documentation.
+MTL finder is a chatbot application that use LLM (mistral) and OpenTripPlanner to provide users with personalized travel recommendations in Montreal.
 
 ## Live Version
 
