@@ -2,8 +2,8 @@
 Session state management for MTL Finder.
 """
 import streamlit as st
-from typing import Optional, Dict, List, Any
-from dataclasses import dataclass, field
+from typing import Optional, Dict, List
+from dataclasses import dataclass
 
 
 @dataclass
