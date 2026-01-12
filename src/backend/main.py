@@ -1,38 +1,22 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Dict, Optional
 from datetime import datetime
 import uuid
-import os
-import json
-import logging
 from pathlib import Path
-from dotenv import load_dotenv
+
 from mistralai import Mistral
 
-# Import tools
-from tools import TOOLS, execute_tool
+from config import get_settings, setup_logging, get_logger
+from models import Message, ChatResponse
+from services.session import SessionStore
+from services.chat import ChatService
 
-# Load environment variables from project root
-current_folder = Path(__file__).parent
-env_path = current_folder.parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+# Initialize settings and logging
+settings = get_settings()
+setup_logging(settings.log_level)
+logger = get_logger(__name__)
 
-# Configure logging
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-log_level = logging.getLevelName(LOG_LEVEL)
-if not isinstance(log_level, int):
-    log_level = logging.INFO # Default to INFO if level is invalid
-
-logging.basicConfig(
-    level=log_level,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()],
-)
-logger = logging.getLogger(__name__)
-logger.setLevel(log_level)
-
+# Initialize FastAPI app
 app = FastAPI(title="MTL Finder Chat API")
 
 # Configure CORS
@@ -45,44 +29,33 @@ app.add_middleware(
 )
 
 # Initialize Mistral client
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
-
-if not MISTRAL_API_KEY:
-    print("Warning: MISTRAL_API_KEY not set. Chat will not work properly.")
+if not settings.mistral_api_key:
+    logger.warning("MISTRAL_API_KEY not set. Chat will not work properly.")
     mistral_client = None
 else:
-    mistral_client = Mistral(api_key=MISTRAL_API_KEY)
+    mistral_client = Mistral(api_key=settings.mistral_api_key)
 
-# In-memory storage for user sessions
-# Key: session_id, Value: list of messages (in Mistral API format)
-sessions: Dict[str, List[dict]] = {}
+# Initialize session store (singleton)
+session_store = SessionStore()
 
+# Initialize chat service
+current_folder = Path(__file__).parent
+prompt_file_path = current_folder / "prompt.txt"
 
-class UserLocation(BaseModel):
-    latitude: float
-    longitude: float
-
-
-class Message(BaseModel):
-    content: str
-    session_id: str
-    user_location: Optional[UserLocation] = None
-
-
-class ChatMessage(BaseModel):
-    role: str  # "user" or "assistant"
-    content: str
-    timestamp: str
-
-
-class ChatResponse(BaseModel):
-    session_id: str
-    messages: List[ChatMessage]
+chat_service = None
+if mistral_client:
+    chat_service = ChatService(
+        mistral_client=mistral_client,
+        model=settings.mistral_model,
+        max_iterations=settings.max_chat_iterations,
+        prompt_file_path=prompt_file_path,
+        logger=logger,
+    )
 
 
 @app.get("/")
 async def root():
+    """Health check endpoint"""
     return {"message": "MTL Finder Chat API is running", "status": "healthy"}
 
 
@@ -90,17 +63,15 @@ async def root():
 async def create_session():
     """Create a new chat session"""
     session_id = str(uuid.uuid4())
-    sessions[session_id] = []
+    session_store.create_session(session_id)
     return {"session_id": session_id}
 
 
 @app.get("/session/{session_id}/messages", response_model=ChatResponse)
 async def get_session_messages(session_id: str):
     """Get all messages for a session"""
-    if session_id not in sessions:
-        sessions[session_id] = []
-
-    return {"session_id": session_id, "messages": sessions[session_id]}
+    messages = session_store.get_messages(session_id)
+    return {"session_id": session_id, "messages": messages}
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -111,21 +82,21 @@ async def chat(message: Message):
     )
 
     # Check if Mistral client is initialized
-    if not mistral_client:
+    if not mistral_client or not chat_service:
         raise HTTPException(
             status_code=503,
             detail="Mistral API is not configured. Please set MISTRAL_API_KEY.",
         )
 
     # Initialize session if it doesn't exist
-    if message.session_id not in sessions:
-        sessions[message.session_id] = []
+    if not session_store.session_exists(message.session_id):
+        session_store.create_session(message.session_id)
         logger.info(f"🆕 Created new session: {message.session_id[:8]}...")
 
     # Prepare user message content
     user_content = message.content
 
-    # If user location is provided, append it to the system context
+    # If user location is provided, append it to the message content
     if message.user_location:
         logger.info(
             f"📍 User location: ({message.user_location.latitude}, {message.user_location.longitude})"
@@ -138,107 +109,14 @@ async def chat(message: Message):
         "content": user_content,
         "timestamp": datetime.now().isoformat(),
     }
-    sessions[message.session_id].append(user_message)
+    session_store.add_message(message.session_id, user_message)
 
     try:
-        # Add system prompt if this is the first message
-        mistral_messages = []
-        if len(sessions[message.session_id]) == 1:
-            with open(current_folder / "prompt.txt") as f:
-                prompt = f.read()
-            system_prompt = {"role": "system", "content": prompt}
-            mistral_messages.append(system_prompt)
+        # Get session messages
+        session_messages = session_store.get_messages(message.session_id)
 
-        # Add conversation history
-        mistral_messages.extend(
-            [
-                {"role": msg["role"], "content": msg["content"]}
-                for msg in sessions[message.session_id]
-            ]
-        )
-
-        # Call Mistral API with tools - loop to handle multiple rounds of tool calls
-        max_iterations = 10  # Prevent infinite loops
-        iteration = 0
-
-        response = mistral_client.chat.complete(
-            model=MISTRAL_MODEL,
-            messages=mistral_messages,
-            tools=TOOLS,
-        )
-
-        # Loop to handle multiple rounds of tool calls
-        while iteration < max_iterations:
-            iteration += 1
-            assistant_message_obj = response.choices[0].message
-
-            # Check if model wants to call tools
-            if not assistant_message_obj.tool_calls:
-                # No more tool calls, we're done
-                break
-
-            logger.info(
-                f"🔄 Iteration {iteration}: Model requested {len(assistant_message_obj.tool_calls)} tool call(s)"
-            )
-
-            # Add assistant's tool call message to conversation
-            tool_call_message = {
-                "role": "assistant",
-                "content": assistant_message_obj.content or "",
-                "tool_calls": [
-                    {
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments,
-                        },
-                    }
-                    for tc in assistant_message_obj.tool_calls
-                ],
-            }
-            mistral_messages.append(tool_call_message)
-
-            # Execute each tool call
-            for tool_call in assistant_message_obj.tool_calls:
-                # Parse arguments
-                try:
-                    arguments = json.loads(tool_call.function.arguments)
-                except json.JSONDecodeError:
-                    arguments = {}
-
-                # Log tool call details
-                logger.info(f"📞 Calling tool: {tool_call.function.name}")
-                logger.info(f"📋 Arguments: {json.dumps(arguments, indent=2)}")
-
-                # Execute the tool
-                tool_result = execute_tool(tool_call.function.name, arguments)
-
-                # Log tool result (truncate if too long)
-                result_str = json.dumps(tool_result, indent=2)
-                if len(result_str) > 500:
-                    logger.info(f"✅ Result (truncated): {result_str[:500]}...")
-                else:
-                    logger.info(f"✅ Result: {result_str}")
-
-                # Add tool result to messages
-                tool_message = {
-                    "role": "tool",
-                    "name": tool_call.function.name,
-                    "content": json.dumps(tool_result),
-                    "tool_call_id": tool_call.id,
-                }
-                mistral_messages.append(tool_message)
-
-            # Call Mistral again with tool results
-            response = mistral_client.chat.complete(
-                model=MISTRAL_MODEL,
-                messages=mistral_messages,
-                tools=TOOLS,
-            )
-
-        # Extract final assistant response
-        assistant_content = response.choices[0].message.content
+        # Process message through chat service
+        assistant_content = chat_service.process_message(user_content, session_messages)
 
         # Add assistant message to session
         assistant_message = {
@@ -246,11 +124,13 @@ async def chat(message: Message):
             "content": assistant_content,
             "timestamp": datetime.now().isoformat(),
         }
-        sessions[message.session_id].append(assistant_message)
+        session_store.add_message(message.session_id, assistant_message)
 
+        # Return all messages
+        all_messages = session_store.get_messages(message.session_id)
         return {
             "session_id": message.session_id,
-            "messages": sessions[message.session_id],
+            "messages": all_messages,
         }
 
     except Exception as e:
@@ -260,7 +140,7 @@ async def chat(message: Message):
             "content": f"Error: {str(e)}",
             "timestamp": datetime.now().isoformat(),
         }
-        sessions[message.session_id].append(error_message)
+        session_store.add_message(message.session_id, error_message)
 
         raise HTTPException(
             status_code=500, detail=f"Failed to get response from Mistral AI: {str(e)}"
@@ -270,8 +150,7 @@ async def chat(message: Message):
 @app.delete("/session/{session_id}")
 async def delete_session(session_id: str):
     """Delete a session and its messages"""
-    if session_id in sessions:
-        del sessions[session_id]
+    if session_store.delete_session(session_id):
         return {"message": "Session deleted"}
     return {"message": "Session not found"}
 
