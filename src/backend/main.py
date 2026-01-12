@@ -6,6 +6,7 @@ from datetime import datetime
 import uuid
 import os
 import json
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
 from mistralai import Mistral
@@ -16,6 +17,13 @@ from tools import TOOLS, execute_tool
 # Load environment variables from project root
 env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="MTL Finder Chat API")
 
@@ -93,6 +101,8 @@ async def get_session_messages(session_id: str):
 @app.post("/chat", response_model=ChatResponse)
 async def chat(message: Message):
     """Send a message and get a response from Mistral AI"""
+    logger.info(f"💬 New chat message: '{message.content[:100]}...' (session: {message.session_id[:8]}...)")
+
     # Check if Mistral client is initialized
     if not mistral_client:
         raise HTTPException(
@@ -103,12 +113,14 @@ async def chat(message: Message):
     # Initialize session if it doesn't exist
     if message.session_id not in sessions:
         sessions[message.session_id] = []
+        logger.info(f"🆕 Created new session: {message.session_id[:8]}...")
 
     # Prepare user message content
     user_content = message.content
 
     # If user location is provided, append it to the system context
     if message.user_location:
+        logger.info(f"📍 User location: ({message.user_location.latitude}, {message.user_location.longitude})")
         user_content = f"{message.content}\n\n[User's current location: Latitude {message.user_location.latitude}, Longitude {message.user_location.longitude}]"
 
     # Add user message to session
@@ -223,6 +235,8 @@ User: "How do I get to Old Montreal?"
 
         # Check if model wants to call tools
         if assistant_message_obj.tool_calls:
+            logger.info(f"🔧 Model requested {len(assistant_message_obj.tool_calls)} tool call(s)")
+
             # Add assistant's tool call message to conversation
             tool_call_message = {
                 "role": "assistant",
@@ -249,8 +263,19 @@ User: "How do I get to Old Montreal?"
                 except json.JSONDecodeError:
                     arguments = {}
 
+                # Log tool call details
+                logger.info(f"📞 Calling tool: {tool_call.function.name}")
+                logger.info(f"📋 Arguments: {json.dumps(arguments, indent=2)}")
+
                 # Execute the tool
                 tool_result = execute_tool(tool_call.function.name, arguments)
+
+                # Log tool result (truncate if too long)
+                result_str = json.dumps(tool_result, indent=2)
+                if len(result_str) > 500:
+                    logger.info(f"✅ Result (truncated): {result_str[:500]}...")
+                else:
+                    logger.info(f"✅ Result: {result_str}")
 
                 # Add tool result to messages
                 tool_message = {
