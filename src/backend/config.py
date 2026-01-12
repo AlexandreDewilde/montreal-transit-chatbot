@@ -3,18 +3,15 @@ Configuration and logging setup for MTL Finder backend
 """
 
 import logging
-import os
 from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-# Load environment variables from project root
+# Path to .env file in project root
 current_folder = Path(__file__).parent
 env_path = current_folder.parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
 
 
 class Settings(BaseSettings):
