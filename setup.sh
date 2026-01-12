@@ -70,6 +70,7 @@ if [ ! -f .env ]; then
 API_URL=${API_URL}
 API_PORT=${API_PORT}
 LOG_LEVEL=INFO
+CORS_ORIGINS=http://localhost:${FRONTEND_PORT},http://127.0.0.1:${FRONTEND_PORT}
 
 # Frontend
 FRONTEND_PORT=${FRONTEND_PORT}

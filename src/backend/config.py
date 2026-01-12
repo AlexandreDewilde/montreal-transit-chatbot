@@ -31,6 +31,17 @@ class Settings(BaseSettings):
     # Chat Configuration
     max_chat_iterations: int = Field(default=10)
 
+    # CORS Configuration
+    cors_origins: str = Field(
+        default="http://localhost:8501,http://127.0.0.1:8501",
+        alias="CORS_ORIGINS",
+    )
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parse CORS_ORIGINS string into a list"""
+        return [origin.strip() for origin in self.cors_origins.split(",")]
+
     class Config:
         env_file = str(env_path)
         env_file_encoding = "utf-8"
