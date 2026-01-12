@@ -1,0 +1,87 @@
+"""
+Configuration and constants for MTL Finder frontend.
+"""
+import os
+from pathlib import Path
+from typing import Dict, Tuple
+from dotenv import load_dotenv
+
+# Load environment variables from project root
+ENV_PATH = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(dotenv_path=ENV_PATH)
+
+# API Configuration
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_TIMEOUT = 30  # seconds
+API_RETRY_ATTEMPTS = 3
+API_RETRY_DELAY = 1  # seconds
+
+# Page Configuration
+PAGE_TITLE = "MTL Finder Chat"
+PAGE_ICON = "💬"
+LAYOUT = "centered"
+
+# App Metadata
+APP_TITLE = "🗺️ MTL Finder"
+APP_CAPTION = "Your intelligent travel assistant for Montreal - powered by Mistral AI & OpenTripPlanner"
+
+# Popular Montreal Destinations (name -> (lat, lon))
+DESTINATIONS: Dict[str, Tuple[float, float]] = {
+    "Old Montreal": (45.5048, -73.5540),
+    "Mont-Royal Park": (45.5048, -73.5874),
+    "McGill University": (45.5048, -73.5762),
+    "Plateau Mont-Royal": (45.5262, -73.5782),
+    "Jean-Talon Market": (45.5356, -73.6135),
+    "Olympic Stadium": (45.5579, -73.5516),
+    "Atwater Market": (45.4771, -73.5818),
+}
+
+# Quick Action Buttons
+QUICK_ACTIONS = [
+    {
+        "emoji": "🚇",
+        "label": "How do I get to Old Montreal?",
+        "prompt": "How do I get to Old Montreal?",
+    },
+    {
+        "emoji": "🚲",
+        "label": "Best bike route to Plateau?",
+        "prompt": "What's the best bike route to Plateau Mont-Royal?",
+    },
+    {
+        "emoji": "🌤️",
+        "label": "What's the weather?",
+        "prompt": "What's the weather like right now?",
+    },
+    {
+        "emoji": "🏛️",
+        "label": "Get to McGill University",
+        "prompt": "How do I get to McGill University?",
+    },
+]
+
+# UI Messages
+WELCOME_TIP = "💡 **Tip:** I can help you plan trips using metro, bus, bike, or walking. I'll check the weather to recommend the best option!"
+TRY_ASKING_HEADER = "**Try asking:**"
+LOCATION_ENABLED_MSG = "✓ Location enabled"
+LOCATION_DISABLED_MSG = "⚠️ Location not available"
+LOCATION_HELP_TEXT = """Please allow browser location access to:
+• Get weather for your area
+• Use your location as trip starting point"""
+LOCATION_USE_MSG = "I'll use your location as the starting point for routes!"
+
+# Sidebar Sections
+ABOUT_TEXT = """**MTL Finder** uses:
+• Mistral AI for intelligent responses
+• OpenTripPlanner for route planning
+• Real-time STM transit data
+• Open-Meteo for weather info"""
+
+# Error Messages
+ERROR_API_CONNECTION = "Error connecting to API: {error}"
+ERROR_API_STATUS = "Error: API returned status code {status}"
+ERROR_SESSION_CREATE = "Could not create session with API, using local session"
+
+# Chat Configuration
+CHAT_INPUT_PLACEHOLDER = "What would you like to know?"
+THINKING_MESSAGE = "Thinking..."
