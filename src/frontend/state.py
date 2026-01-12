@@ -127,7 +127,16 @@ class SessionState:
     @classmethod
     def has_location(cls) -> bool:
         """Check if user location is available."""
-        return st.session_state.get(cls.USER_LOCATION_KEY) is not None
+        loc = st.session_state.get(cls.USER_LOCATION_KEY)
+        if not loc:
+            return False
+        # Also check if it's a valid location (not 0,0)
+        return loc.get("latitude") != 0.0 or loc.get("longitude") != 0.0
+
+    @classmethod
+    def clear_location(cls) -> None:
+        """Clear the user's location to trigger a new request."""
+        st.session_state[cls.USER_LOCATION_KEY] = None
 
     # Location Requested
     @classmethod
