@@ -9,4 +9,5 @@ services:
       - ./otp-data:/var/opentripplanner
     environment:
       - JAVA_OPTIONS=-Xmx4G
+      - STM_API_KEY=${STM_API_KEY}
     command: ["--build", "--save", "--serve"]
