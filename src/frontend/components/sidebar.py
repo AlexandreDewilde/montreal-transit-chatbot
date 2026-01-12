@@ -3,7 +3,7 @@ Sidebar component for MTL Finder.
 """
 import streamlit as st
 
-from config import DESTINATIONS, ABOUT_TEXT
+from config import DESTINATIONS, ABOUT_TEXT, GITHUB_URL
 from state import SessionState
 from components.location import display_location_status
 
@@ -18,7 +18,7 @@ def render_popular_destinations() -> None:
 
     selected_dest = st.selectbox(
         "Quick destination select:",
-        [""] + list(DESTINATIONS.keys()),
+        [""] + DESTINATIONS,
         format_func=lambda x: "Choose a destination..." if x == "" else x,
     )
 
@@ -36,22 +36,17 @@ def render_about_section() -> None:
     st.header("ℹ️ About")
     st.caption(ABOUT_TEXT)
 
+    # GitHub link
+    st.link_button("🔗 View on GitHub", GITHUB_URL, use_container_width=True)
+
 
 def render_action_buttons() -> None:
     """
-    Render action buttons for clearing chat and creating new session.
+    Render action button for creating new session.
     """
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button("🗑️ Clear Chat"):
-            SessionState.clear_messages()
-            st.rerun()
-
-    with col2:
-        if st.button("🔄 New Session"):
-            SessionState.reset_session()
-            st.rerun()
+    if st.button("🔄 New Session", use_container_width=True):
+        SessionState.reset_session()
+        st.rerun()
 
 
 def render_sidebar() -> None:

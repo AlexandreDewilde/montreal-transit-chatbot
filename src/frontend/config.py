@@ -3,7 +3,7 @@ Configuration and constants for MTL Finder frontend.
 """
 import os
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import List
 from dotenv import load_dotenv
 
 # Load environment variables from project root
@@ -25,16 +25,16 @@ LAYOUT = "centered"
 APP_TITLE = "🗺️ MTL Finder"
 APP_CAPTION = "Your intelligent travel assistant for Montreal - powered by Mistral AI & OpenTripPlanner"
 
-# Popular Montreal Destinations (name -> (lat, lon))
-DESTINATIONS: Dict[str, Tuple[float, float]] = {
-    "Old Montreal": (45.5048, -73.5540),
-    "Mont-Royal Park": (45.5048, -73.5874),
-    "McGill University": (45.5048, -73.5762),
-    "Plateau Mont-Royal": (45.5262, -73.5782),
-    "Jean-Talon Market": (45.5356, -73.6135),
-    "Olympic Stadium": (45.5579, -73.5516),
-    "Atwater Market": (45.4771, -73.5818),
-}
+# Popular Montreal Destinations (will be geocoded dynamically)
+DESTINATIONS: List[str] = [
+    "Old Montreal",
+    "Mont-Royal Park",
+    "McGill University",
+    "Plateau Mont-Royal",
+    "Jean-Talon Market",
+    "Olympic Stadium",
+    "Atwater Market",
+]
 
 # Quick Action Buttons
 QUICK_ACTIONS = [
@@ -74,8 +74,11 @@ LOCATION_USE_MSG = "I'll use your location as the starting point for routes!"
 ABOUT_TEXT = """**MTL Finder** uses:
 • Mistral AI for intelligent responses
 • OpenTripPlanner for route planning
-• Real-time STM transit data
+• Photon (OSM) for geocoding
+• Real-time STM transit data & BIXI bike-share
 • Open-Meteo for weather info"""
+
+GITHUB_URL = "https://github.com/AlexandreDewilde/montreal-transit-chatbot"
 
 # Error Messages
 ERROR_API_CONNECTION = "Error connecting to API: {error}"
