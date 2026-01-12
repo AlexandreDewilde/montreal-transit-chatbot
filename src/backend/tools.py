@@ -6,6 +6,7 @@ import requests
 import os
 from typing import Any, Dict, Optional
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from google.transit import gtfs_realtime_pb2
 
 
@@ -15,14 +16,26 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "get_current_datetime",
+            "description": "Get the current date and time in Montreal's timezone (America/Montreal). Use this to calculate future times when user says 'tomorrow', 'next week', 'in 2 hours', etc.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "geocode_location",
-            "description": "Convert a location name or address into geographic coordinates (latitude, longitude). CRITICAL: ALWAYS use this tool to convert location names to coordinates. NEVER guess or assume coordinates for destinations. This tool searches OpenStreetMap data for Canadian locations.",
+            "description": "Convert a location name or address into geographic coordinates (latitude, longitude). CRITICAL: ALWAYS use this tool to convert location names to coordinates. NEVER guess or assume coordinates for destinations. This tool searches OpenStreetMap data for ALL Canadian locations, so be specific by adding city name and 'Quebec' to your query (e.g., 'Montreal, Quebec' or 'Laval, Quebec') to get accurate results.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "The location name or address to geocode (e.g., 'Old Montreal', 'McGill University', '1234 Rue Sainte-Catherine', 'Mont-Royal Park')",
+                        "description": "The location name or address to geocode. IMPORTANT: Always include city name and 'Quebec' for accuracy. Examples: 'Old Montreal, Montreal, Quebec', 'McGill University, Montreal, Quebec', 'Carrefour Laval, Laval, Quebec', 'Longueuil metro, Longueuil, Quebec'",
                     },
                     "limit": {
                         "type": "number",
@@ -118,6 +131,34 @@ TOOLS = [
         },
     },
 ]
+
+
+def get_current_datetime() -> Dict[str, Any]:
+    """
+    Get the current date and time in Montreal's timezone
+
+    Returns:
+        Dictionary with current datetime information in Montreal timezone
+    """
+    try:
+        # Get current time in Montreal timezone
+        montreal_tz = ZoneInfo("America/Montreal")
+        now = datetime.now(montreal_tz)
+
+        return {
+            "success": True,
+            "datetime": now.isoformat(),
+            "date": now.strftime("%Y-%m-%d"),
+            "time": now.strftime("%H:%M:%S"),
+            "day_of_week": now.strftime("%A"),
+            "timezone": "America/Montreal",
+            "readable": now.strftime("%A, %B %d, %Y at %I:%M %p"),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get current datetime: {str(e)}"
+        }
 
 
 def geocode_location(query: str, limit: int = 1) -> Dict[str, Any]:
@@ -380,12 +421,29 @@ def plan_trip(
         for itinerary in plan["itineraries"]:
             legs = []
             for leg in itinerary.get("legs", []):
+                # Convert timestamps from epoch milliseconds to readable format
+                start_time_ms = leg.get("startTime")
+                end_time_ms = leg.get("endTime")
+
+                # Convert to datetime objects and format as readable strings
+                start_time_readable = None
+                end_time_readable = None
+                if start_time_ms:
+                    start_dt = datetime.fromtimestamp(start_time_ms / 1000, tz=ZoneInfo("America/Montreal"))
+                    start_time_readable = start_dt.strftime("%H:%M")  # e.g., "14:35"
+                if end_time_ms:
+                    end_dt = datetime.fromtimestamp(end_time_ms / 1000, tz=ZoneInfo("America/Montreal"))
+                    end_time_readable = end_dt.strftime("%H:%M")
+
                 leg_info = {
                     "mode": leg.get("mode"),
                     "from": leg.get("from", {}).get("name"),
                     "to": leg.get("to", {}).get("name"),
                     "distance": round(leg.get("distance", 0), 2),
                     "duration": leg.get("duration", 0),
+                    "duration_minutes": round(leg.get("duration", 0) / 60, 1),
+                    "startTime": start_time_readable,  # Now in HH:MM format
+                    "endTime": end_time_readable,      # Now in HH:MM format
                     "route": leg.get("route", {}).get("shortName") if leg.get("route") else None,
                     "routeLongName": leg.get("route", {}).get("longName") if leg.get("route") else None,
                     "headsign": leg.get("trip", {}).get("tripHeadsign") if leg.get("trip") else None,
@@ -538,6 +596,7 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
 
 # Function registry - maps function names to actual Python functions
 FUNCTION_REGISTRY = {
+    "get_current_datetime": get_current_datetime,
     "geocode_location": geocode_location,
     "get_weather": get_weather,
     "plan_trip": plan_trip,
