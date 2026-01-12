@@ -128,13 +128,35 @@ cat > otp-data/build-config.json <<'EOF'
 }
 EOF
 
-echo "Creating otp-config.json (real-time updaters for OTP 2.x)..."
-cat > otp-data/otp-config.json <<EOF
+echo "Creating otp-config.json..."
+cat > otp-data/otp-config.json <<'EOF'
 {
   "otpFeatures": {
     "SandboxAPIGeocoder": false,
     "SandboxAPIMapboxVectorTilesApi": false
+  }
+}
+EOF
+
+echo "Creating router-config.json with real-time updaters..."
+cat > otp-data/router-config.json <<ROUTER_EOF
+{
+  "routingDefaults": {
+    "walkSpeed": 1.3,
+    "bikeSpeed": 5.0,
+    "carSpeed": 40.0,
+    "numItineraries": 5,
+    "transferPenalty": 0,
+    "waitReluctance": 0.95,
+    "walkReluctance": 2.0,
+    "stairsReluctance": 1.65,
+    "walkBoardCost": 60,
+    "maxTransfers": 5,
+    "searchWindow": "2h",
+    "itineraryFiltering": 1.5
   },
+  "timeout": 10,
+  "requestLogFile": "/var/otp/requestLog.csv",
   "updaters": [
     {
       "type": "vehicle-rental",
@@ -147,7 +169,7 @@ cat > otp-data/otp-config.json <<EOF
       "type": "real-time-alerts",
       "frequency": "30s",
       "url": "https://api.stm.info/pub/od/gtfs-rt/ic/v2/alerts",
-      "feedId": "STM",
+      "feedId": "1",
       "headers": {
         "apikey": "${STM_API_KEY}"
       }
@@ -156,7 +178,7 @@ cat > otp-data/otp-config.json <<EOF
       "type": "stop-time-updater",
       "frequency": "30s",
       "url": "https://api.stm.info/pub/od/gtfs-rt/ic/v2/tripUpdates",
-      "feedId": "STM",
+      "feedId": "1",
       "fuzzyTripMatching": true,
       "headers": {
         "apikey": "${STM_API_KEY}"
@@ -164,32 +186,7 @@ cat > otp-data/otp-config.json <<EOF
     }
   ]
 }
-EOF
-
-echo "Creating router-config.json..."
-cat > otp-data/router-config.json <<'EOF'
-{
-  "routingDefaults": {
-    "walkSpeed": 1.3,
-    "bikeSpeed": 5.0,
-    "carSpeed": 40.0,
-    "numItineraries": 5,
-    "transferPenalty": 0,
-    "waitReluctance": 0.95,
-    "walkReluctance": 2.0,
-    "stairsReluctance": 1.65,
-    "walkBoardCost": 60,
-    "allowBikeRental": true,
-    "bikeRentalPickupTime": 60,
-    "bikeRentalDropoffTime": 30,
-    "maxTransfers": 5,
-    "searchWindow": "2h",
-    "itineraryFiltering": 1.5
-  },
-  "timeout": 10,
-  "requestLogFile": "/var/otp/requestLog.csv"
-}
-EOF
+ROUTER_EOF
 
 echo "✓ OTP configuration complete!"
 echo ""
