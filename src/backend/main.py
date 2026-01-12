@@ -20,13 +20,18 @@ env_path = current_folder.parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 # Configure logging
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+log_level = logging.getLevelName(LOG_LEVEL)
+if not isinstance(log_level, int):
+    log_level = logging.INFO # Default to INFO if level is invalid
+
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(log_level)
 
 app = FastAPI(title="MTL Finder Chat API")
 

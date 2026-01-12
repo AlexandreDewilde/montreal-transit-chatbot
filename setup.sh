@@ -69,6 +69,7 @@ if [ ! -f .env ]; then
 # Backend
 API_URL=${API_URL}
 API_PORT=${API_PORT}
+LOG_LEVEL=INFO
 
 # Frontend
 FRONTEND_PORT=${FRONTEND_PORT}
