@@ -46,6 +46,8 @@ uv.lock
 
 # Streamlit
 .streamlit/
+# But allow config.toml (contains app-wide settings like hiding deploy button)
+!.streamlit/config.toml
 
 # Logs
 *.log

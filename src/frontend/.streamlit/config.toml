@@ -1,0 +1,7 @@
+[client]
+# Hide the deploy button
+showDeployButton = false
+
+# Hide the hamburger menu (settings, rerun, etc.)
+toolbarMode = "minimal"
+
