@@ -10,7 +10,6 @@ from zoneinfo import ZoneInfo
 from google.transit import gtfs_realtime_pb2
 
 
-
 # Tool definitions for Mistral API
 TOOLS = [
     {
@@ -155,10 +154,7 @@ def get_current_datetime() -> Dict[str, Any]:
             "readable": now.strftime("%A, %B %d, %Y at %I:%M %p"),
         }
     except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to get current datetime: {str(e)}"
-        }
+        return {"success": False, "error": f"Failed to get current datetime: {str(e)}"}
 
 
 def geocode_location(query: str, limit: int = 1) -> Dict[str, Any]:
@@ -358,7 +354,11 @@ def plan_trip(
         elif mode == "BICYCLE":
             transport_modes = ["{mode: BICYCLE, qualifier: RENT}", "{mode: WALK}"]
         else:  # TRANSIT,WALK or TRANSIT (default) - include BIXI as option
-            transport_modes = ["{mode: WALK}", "{mode: TRANSIT}", "{mode: BICYCLE, qualifier: RENT}"]
+            transport_modes = [
+                "{mode: WALK}",
+                "{mode: TRANSIT}",
+                "{mode: BICYCLE, qualifier: RENT}",
+            ]
 
         transport_modes_str = ", ".join(transport_modes)
 
@@ -420,15 +420,13 @@ def plan_trip(
         }}
         """
 
-        payload = {
-            "query": query
-        }
+        payload = {"query": query}
 
         response = requests.post(
             otp_url,
             json=payload,
             headers={"Content-Type": "application/json"},
-            timeout=30
+            timeout=30,
         )
         response.raise_for_status()
 
@@ -436,7 +434,9 @@ def plan_trip(
 
         # Check for GraphQL errors
         if "errors" in data:
-            return {"error": f"GraphQL error: {data['errors'][0].get('message', 'Unknown error')}"}
+            return {
+                "error": f"GraphQL error: {data['errors'][0].get('message', 'Unknown error')}"
+            }
 
         # Extract itineraries
         plan = data.get("data", {}).get("plan", {})
@@ -455,10 +455,14 @@ def plan_trip(
                 start_time_readable = None
                 end_time_readable = None
                 if start_time_ms:
-                    start_dt = datetime.fromtimestamp(start_time_ms / 1000, tz=ZoneInfo("America/Montreal"))
+                    start_dt = datetime.fromtimestamp(
+                        start_time_ms / 1000, tz=ZoneInfo("America/Montreal")
+                    )
                     start_time_readable = start_dt.strftime("%H:%M")  # e.g., "14:35"
                 if end_time_ms:
-                    end_dt = datetime.fromtimestamp(end_time_ms / 1000, tz=ZoneInfo("America/Montreal"))
+                    end_dt = datetime.fromtimestamp(
+                        end_time_ms / 1000, tz=ZoneInfo("America/Montreal")
+                    )
                     end_time_readable = end_dt.strftime("%H:%M")
 
                 # Extract BIXI station info if available
@@ -473,10 +477,16 @@ def plan_trip(
                     "duration": leg.get("duration", 0),
                     "duration_minutes": round(leg.get("duration", 0) / 60, 1),
                     "startTime": start_time_readable,  # Now in HH:MM format
-                    "endTime": end_time_readable,      # Now in HH:MM format
-                    "route": leg.get("route", {}).get("shortName") if leg.get("route") else None,
-                    "routeLongName": leg.get("route", {}).get("longName") if leg.get("route") else None,
-                    "headsign": leg.get("trip", {}).get("tripHeadsign") if leg.get("trip") else None,
+                    "endTime": end_time_readable,  # Now in HH:MM format
+                    "route": leg.get("route", {}).get("shortName")
+                    if leg.get("route")
+                    else None,
+                    "routeLongName": leg.get("route", {}).get("longName")
+                    if leg.get("route")
+                    else None,
+                    "headsign": leg.get("trip", {}).get("tripHeadsign")
+                    if leg.get("trip")
+                    else None,
                     "rentedBike": leg.get("rentedBike", False),
                 }
 
@@ -552,9 +562,7 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
         # Note: serviceAlerts endpoint is not available, we extract delays from tripUpdates
         alerts_url = "https://api.stm.info/pub/od/gtfs-rt/ic/v2/tripUpdates"
 
-        headers = {
-            "apikey": api_key
-        }
+        headers = {"apikey": api_key}
 
         response = requests.get(alerts_url, headers=headers, timeout=10)
         response.raise_for_status()
@@ -567,15 +575,19 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
         delays = {}  # route_id -> list of delays
 
         for entity in feed.entity:
-            if entity.HasField('trip_update'):
+            if entity.HasField("trip_update"):
                 trip_update = entity.trip_update
 
-                if trip_update.HasField('trip') and trip_update.trip.HasField('route_id'):
+                if trip_update.HasField("trip") and trip_update.trip.HasField(
+                    "route_id"
+                ):
                     route_id = trip_update.trip.route_id
 
                     # Check for delays in stop_time_updates
                     for stop_update in trip_update.stop_time_update:
-                        if stop_update.HasField('arrival') and stop_update.arrival.HasField('delay'):
+                        if stop_update.HasField(
+                            "arrival"
+                        ) and stop_update.arrival.HasField("delay"):
                             delay_seconds = stop_update.arrival.delay
 
                             # Only report significant delays (> 2 minutes)
@@ -589,15 +601,15 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
         for route_id, delay_list in delays.items():
             # Determine route type
             route_types = set()
-            if route_id in ['1', '2', '4', '5']:
-                route_types.add('metro')
+            if route_id in ["1", "2", "4", "5"]:
+                route_types.add("metro")
             else:
-                route_types.add('bus')
+                route_types.add("bus")
 
             # Filter by route type
-            if route_type == 'metro' and 'metro' not in route_types:
+            if route_type == "metro" and "metro" not in route_types:
                 continue
-            elif route_type == 'bus' and 'bus' not in route_types:
+            elif route_type == "bus" and "bus" not in route_types:
                 continue
 
             # Calculate average delay
@@ -616,24 +628,24 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
                 description = f"Average: {abs(delay_minutes)} minutes early"
 
             alert_info = {
-                'id': f'delay_{route_id}',
-                'header': header,
-                'description': description,
-                'cause': 'UNKNOWN_CAUSE',
-                'effect': 'SIGNIFICANT_DELAYS' if avg_delay > 0 else 'OTHER_EFFECT',
-                'affected_routes': [route_id],
-                'route_types': list(route_types),
-                'avg_delay_seconds': int(avg_delay),
-                'max_delay_seconds': int(max_delay),
-                'num_delayed_stops': len(delay_list),
+                "id": f"delay_{route_id}",
+                "header": header,
+                "description": description,
+                "cause": "UNKNOWN_CAUSE",
+                "effect": "SIGNIFICANT_DELAYS" if avg_delay > 0 else "OTHER_EFFECT",
+                "affected_routes": [route_id],
+                "route_types": list(route_types),
+                "avg_delay_seconds": int(avg_delay),
+                "max_delay_seconds": int(max_delay),
+                "num_delayed_stops": len(delay_list),
             }
             alerts.append(alert_info)
 
         return {
-            'success': True,
-            'count': len(alerts),
-            'alerts': alerts,
-            'filter': route_type,
+            "success": True,
+            "count": len(alerts),
+            "alerts": alerts,
+            "filter": route_type,
         }
 
     except requests.exceptions.RequestException as e:
