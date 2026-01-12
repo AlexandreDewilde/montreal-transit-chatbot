@@ -3,13 +3,16 @@
 The MTL Finder is an intelligent travel assistant designed for Montreal, integrating various services to provide comprehensive route planning and information.
 
 ## Project Overview
+It consists of a FastAPI backend and a Streamlit frontend, both structured for modularity and maintainability. Also there are two docker services running OpenTripPlanner for routing and a Photon geocoder to decode locations from user queries to latitude/longitude coordinates.
 
 MTL Finder combines:
 - **Mistral AI** for natural language understanding and responses
+- **Photon** for geocoding (converting location names to coordinates)
 - **OpenTripPlanner (OTP)** for multi-modal route planning
 - **STM GTFS-RT** for real-time transit updates
 - **BIXI GBFS** for bike-share availability
 - **Open-Meteo** for weather data
+
 
 ## Project Structure
 
@@ -18,9 +21,15 @@ The project is organized into logical components:
 ```
 mistral-project/
 ├── src/
-│   ├── backend/              # FastAPI backend
-│   │   ├── main.py          # API server with Mistral integration
+│   ├── backend/              # FastAPI backend (modular architecture)
+│   │   ├── main.py          # FastAPI app initialization and routes
+│   │   ├── config.py        # Configuration and logging setup
+│   │   ├── models.py        # Pydantic models for API requests/responses
 │   │   ├── tools.py         # Mistral AI function calling tools
+│   │   ├── prompt.txt       # System prompt for Mistral AI agent
+│   │   ├── services/        # Business logic layer
+│   │   │   ├── session.py   # Session storage management
+│   │   │   └── chat.py      # Mistral AI chat orchestration
 │   │   └── pyproject.toml   # Backend dependencies (managed by uv)
 │   └── frontend/            # Streamlit frontend
 │       ├── main.py          # UI with geolocation
@@ -31,6 +40,8 @@ mistral-project/
 │       ├── router-config.json   # OTP routing parameters
 │       ├── stm.gtfs.zip         # STM transit data
 │       └── quebec.osm.pbf       # Quebec street network
+├── docs/                    # Documentation
+│   └── ARCHITECTURE.md      # This file
 ├── .env.example             # Environment template
 ├── docker-compose.otp.yml   # Docker compose for OTP
 ├── setup.sh                 # Complete installation script
@@ -38,23 +49,34 @@ mistral-project/
 ├── stop.sh                  # Script to stop services
 ├── start-otp.sh             # Script to start OpenTripPlanner
 ├── restart-otp.sh           # Script to restart OpenTripPlanner
-└── CLAUDE.md                # Development conventions and guidelines (to be moved or integrated)
+└── CLAUDE.md                # Development conventions and guidelines
 ```
 
 ## Tools Architecture
 
-The backend (`src/backend/tools.py`) implements three key Mistral AI function calling tools:
+The backend (`src/backend/tools.py`) implements five Mistral AI function calling tools:
 
-1.  **`get_weather(latitude, longitude)`**
+1.  **`get_current_datetime()`**
+    -   Returns current date and time in Montreal timezone (America/Montreal).
+    -   Used for planning future trips ("tomorrow at 9am", "in 2 hours").
+
+2.  **`geocode_location(query, limit=1)`**
+    -   Uses Photon geocoder (OpenStreetMap-based).
+    -   Converts location names/addresses to coordinates.
+    -   **Critical**: Always used before `plan_trip` to avoid hardcoded coordinates.
+    -   Returns latitude, longitude, and location metadata.
+
+3.  **`get_weather(latitude, longitude)`**
     -   Utilizes the Open-Meteo API.
     -   Returns current weather conditions for a specified location.
 
-2.  **`plan_trip(from_lat, from_lon, to_lat, to_lon, mode)`**
+4.  **`plan_trip(from_lat, from_lon, to_lat, to_lon, mode, time, arrive_by)`**
     -   Interacts with the OTP GraphQL API.
-    -   Supports various modes: `TRANSIT,WALK`, `WALK`, `BICYCLE`, `CAR`.
-    -   Provides up to 3 route options, incorporating real-time data.
+    -   Supports various modes: `TRANSIT,WALK`, `WALK`, `BICYCLE` (includes BIXI bike-share), `TRANSIT`.
+    -   Provides up to 5 route options with real-time data and BIXI availability.
+    -   Coordinates must come from `geocode_location` tool.
 
-3.  **`get_stm_alerts(route_type)`**
+5.  **`get_stm_alerts(route_type)`**
     -   Fetches data from the STM GTFS-RT `tripUpdates` endpoint.
     -   Extracts delay information (delays greater than 2 minutes).
     -   Can filter alerts by `metro`, `bus`, or `all`.
@@ -62,10 +84,12 @@ The backend (`src/backend/tools.py`) implements three key Mistral AI function ca
 ## System Prompt Strategy
 
 The AI agent's decision-making process is guided by a specific system prompt strategy:
-1.  **Prioritize STM alerts**: The agent first checks for any relevant STM alerts.
-2.  **Check weather**: It then gathers weather information for the relevant locations.
-3.  **Plan the trip**: Subsequently, it proceeds to plan the trip using OTP.
-4.  **Present options**: Finally, it presents the trip options, taking into account both weather conditions and any existing STM alerts.
+1.  **Geocode destination**: The agent first converts location names to coordinates using `geocode_location` (NEVER guesses coordinates).
+2.  **Check STM alerts**: It checks for any relevant STM service alerts and disruptions.
+3.  **Check weather**: It gathers weather information for the relevant locations.
+4.  **Plan the trip**: It proceeds to plan the trip using OTP with the geocoded coordinates.
+5.  **Present options**: It presents the trip options, considering weather conditions and STM alerts.
+6.  **Anti-hallucination**: The agent is strictly instructed to ONLY present routes returned by the API, never inventing bus numbers or schedules.
 
 ## Dependencies
 
@@ -75,11 +99,11 @@ The AI agent's decision-making process is guided by a specific system prompt str
 -   `mistralai`: Python client for the Mistral AI API.
 -   `requests`: HTTP library for making external API calls.
 -   `python-dotenv`: For loading environment variables.
+-   `pydantic` & `pydantic-settings`: Data validation and settings management.
 -   `gtfs-realtime-bindings`: For parsing GTFS-Realtime data.
 
 ### Frontend Dependencies (`src/frontend/pyproject.toml`)
 -   `streamlit`: Python library for building interactive web applications.
 -   `requests`: HTTP library for making external API calls.
--   `streamlit-geolocation`: For integrating geolocation features.
 
 These dependencies are managed and installed using `uv`.
