@@ -1,6 +1,7 @@
 """
 Configuration and constants for MTL Finder frontend.
 """
+
 import os
 from pathlib import Path
 from typing import List

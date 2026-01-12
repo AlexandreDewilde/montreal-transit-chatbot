@@ -1,6 +1,7 @@
 """
 API client for communicating with MTL Finder backend.
 """
+
 import requests
 import time
 import uuid
@@ -20,6 +21,7 @@ from config import (
 @dataclass
 class ChatResponse:
     """Response from the chat API."""
+
     success: bool
     messages: List[Dict[str, str]]
     error: Optional[str] = None

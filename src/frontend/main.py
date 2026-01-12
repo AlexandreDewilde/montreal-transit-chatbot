@@ -3,6 +3,7 @@ MTL Finder - Your intelligent travel assistant for Montreal.
 
 Powered by Mistral AI & OpenTripPlanner with real-time STM data.
 """
+
 import streamlit as st
 
 from config import PAGE_TITLE, PAGE_ICON, LAYOUT, APP_TITLE, APP_CAPTION

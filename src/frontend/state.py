@@ -1,6 +1,7 @@
 """
 Session state management for MTL Finder.
 """
+
 import streamlit as st
 from typing import Optional, Dict, List
 from dataclasses import dataclass
@@ -9,6 +10,7 @@ from dataclasses import dataclass
 @dataclass
 class UserLocation:
     """User's geographic location."""
+
     latitude: float
     longitude: float
 
@@ -25,6 +27,7 @@ class UserLocation:
 @dataclass
 class ChatMessage:
     """A chat message in the conversation."""
+
     role: str  # "user" or "assistant"
     content: str
 
@@ -41,8 +44,13 @@ class ChatMessage:
 class SessionState:
     """
     Manages the application session state.
+    Session state is a way to persist data across Streamlit reruns. (streamlit re-reuns the script from top to bottom on each interaction)
 
     Provides a clean interface to Streamlit's session_state.
+
+    This class acts as namespace for session-related data and methods.
+    It avoids the need to pass state around functions or having multiple functions
+    directly manipulate st.session_state.
     """
 
     # Session state keys
@@ -88,9 +96,16 @@ class SessionState:
         return st.session_state.get(cls.MESSAGES_KEY, [])
 
     @classmethod
-    def add_message(cls, role: str, content: str) -> None:
-        """Add a message to the chat history."""
-        message = {"role": role, "content": content}
+    def add_message(cls, role: str, content: str, message_type: str = "normal") -> None:
+        """
+        Add a message to the chat history.
+
+        Args:
+            role: Message role ("user" or "assistant")
+            content: Message content
+            message_type: Type of message ("normal", "error", "warning", "info", etc.)
+        """
+        message = {"role": role, "content": content, "message_type": message_type}
         st.session_state[cls.MESSAGES_KEY].append(message)
 
     @classmethod

@@ -1,6 +1,7 @@
 """
 Location handling component for MTL Finder.
 """
+
 import streamlit as st
 import streamlit.components.v1 as components
 from pathlib import Path
@@ -78,4 +79,6 @@ def display_location_status() -> None:
         st.caption("2. Allow location access for this site")
         st.caption("3. Refresh the page")
         st.caption("")
-        st.caption("⚠️ **Note:** Some laptops don't have GPS hardware. If location doesn't work, you can still specify your starting point in your message.")
+        st.caption(
+            "⚠️ **Note:** Some laptops don't have GPS hardware. If location doesn't work, you can still specify your starting point in your message."
+        )

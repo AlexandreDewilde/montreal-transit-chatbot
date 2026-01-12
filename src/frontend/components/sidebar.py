@@ -1,6 +1,7 @@
 """
 Sidebar component for MTL Finder.
 """
+
 import streamlit as st
 
 from config import DESTINATIONS, ABOUT_TEXT, GITHUB_URL
@@ -18,6 +19,8 @@ def render_popular_destinations() -> None:
 
     selected_dest = st.selectbox(
         "Quick destination select:",
+        # The empty string allows for a placeholder option, without pre-selecting any destination
+        # This way we just check if selected_dest is different than "" to know if user made a selection
         [""] + DESTINATIONS,
         format_func=lambda x: "Choose a destination..." if x == "" else x,
     )
@@ -60,17 +63,13 @@ def render_sidebar() -> None:
     - Action buttons
     """
     with st.sidebar:
-        # Location status
-        display_location_status()
-        st.divider()
-
         # Popular destinations
         render_popular_destinations()
         st.divider()
 
-        # About section
-        render_about_section()
+        # Location status
+        display_location_status()
         st.divider()
 
-        # Action buttons
-        render_action_buttons()
+        # About section
+        render_about_section()

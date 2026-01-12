@@ -1,6 +1,7 @@
 """
 Quick action buttons component for MTL Finder.
 """
+
 import streamlit as st
 
 from config import QUICK_ACTIONS, WELCOME_TIP, TRY_ASKING_HEADER
@@ -10,12 +11,10 @@ from state import SessionState
 def render_quick_actions() -> None:
     """
     Render quick action buttons for common queries.
-
-    Only shows when there are no messages in the conversation yet.
     """
     # Only show quick actions if conversation is empty
-    if SessionState.get_message_count() > 0:
-        return
+    # if SessionState.get_message_count() > 0:
+    # return
 
     # Show welcome tip
     st.info(WELCOME_TIP)
@@ -38,5 +37,4 @@ def render_quick_actions() -> None:
                 SessionState.add_message("user", action["prompt"])
                 # Rerun to process the message
                 st.rerun()
-
     st.divider()
