@@ -79,6 +79,9 @@ MISTRAL_MODEL=mistral-small-latest
 
 # STM Real-time API
 STM_API_KEY=${STM_API_KEY}
+
+# Photon Geocoding Service
+PHOTON_URL=http://localhost:2322
 EOF
 
     echo "✓ .env file created successfully!"

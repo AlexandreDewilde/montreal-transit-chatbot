@@ -48,8 +48,23 @@ echo ""
 docker compose -f docker-compose.photon.yml up -d
 
 echo "✓ Photon container started"
-echo "  Note: First start will download Canada data (~8GB)"
-echo "  API will be available at: http://localhost:2322"
+echo "  Waiting for Photon to be ready..."
+echo "  Note: First start will download Canada data (~8GB, ~10 min)"
+echo ""
+
+# Wait for Photon to be ready
+echo -n "Initializing Photon"
+while true; do
+    if docker logs photon-geocoder 2>&1 | grep -q "Photon startup successful"; then
+        echo ""
+        echo "✓ Photon ready and serving!"
+        break
+    fi
+    echo -n "."
+    sleep 5
+done
+
+echo "  API available at: http://localhost:2322"
 echo ""
 
 echo "Step 2: Starting OpenTripPlanner"

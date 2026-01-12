@@ -15,6 +15,27 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "geocode_location",
+            "description": "Convert a location name or address into geographic coordinates (latitude, longitude). CRITICAL: ALWAYS use this tool to convert location names to coordinates. NEVER guess or assume coordinates for destinations. This tool searches OpenStreetMap data for Canadian locations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The location name or address to geocode (e.g., 'Old Montreal', 'McGill University', '1234 Rue Sainte-Catherine', 'Mont-Royal Park')",
+                    },
+                    "limit": {
+                        "type": "number",
+                        "description": "Maximum number of results to return (default: 1)",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_weather",
             "description": "Get current weather information for a specific location using latitude and longitude coordinates",
             "parameters": {
@@ -37,7 +58,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "plan_trip",
-            "description": "Plan a trip from one location to another using various modes of transportation (transit, walking, biking, driving). Returns detailed itineraries with step-by-step directions. Common Montreal destinations: Old Montreal (45.5048, -73.5540), McGill University (45.5048, -73.5762), Mont-Royal Park (45.5048, -73.5874), Plateau Mont-Royal (45.5262, -73.5782), Jean-Talon Market (45.5356, -73.6135), Olympic Stadium (45.5579, -73.5516)",
+            "description": "Plan a trip from one location to another using various modes of transportation (transit, walking, biking, driving). Returns detailed itineraries with step-by-step directions. IMPORTANT: Coordinates must be obtained using geocode_location tool first - do NOT use hardcoded coordinates for destinations.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -97,6 +118,97 @@ TOOLS = [
         },
     },
 ]
+
+
+def geocode_location(query: str, limit: int = 1) -> Dict[str, Any]:
+    """
+    Convert a location name or address to geographic coordinates using Photon geocoder
+
+    Args:
+        query: Location name or address to geocode
+        limit: Maximum number of results to return (default: 1)
+
+    Returns:
+        Dictionary with geocoding results containing coordinates and location info
+    """
+    try:
+        # Get Photon URL from environment
+        photon_url = os.getenv("PHOTON_URL", "http://localhost:2322")
+        api_endpoint = f"{photon_url}/api"
+
+        # Request parameters
+        params = {
+            "q": query,
+            "limit": min(limit, 5),  # Cap at 5 results
+        }
+
+        response = requests.get(api_endpoint, params=params, timeout=10)
+        response.raise_for_status()
+
+        data = response.json()
+
+        # Extract features
+        features = data.get("features", [])
+
+        if not features:
+            return {
+                "success": False,
+                "error": f"No results found for '{query}'",
+                "query": query,
+            }
+
+        # Format results
+        results = []
+        for feature in features:
+            props = feature.get("properties", {})
+            geom = feature.get("geometry", {})
+            coords = geom.get("coordinates", [])
+
+            if len(coords) >= 2:
+                result = {
+                    "name": props.get("name", query),
+                    "latitude": coords[1],  # GeoJSON is [lon, lat]
+                    "longitude": coords[0],
+                    "type": props.get("type", "unknown"),
+                    "city": props.get("city"),
+                    "state": props.get("state"),
+                    "country": props.get("country"),
+                    "osm_type": props.get("osm_type"),
+                    "osm_id": props.get("osm_id"),
+                }
+                results.append(result)
+
+        return {
+            "success": True,
+            "query": query,
+            "count": len(results),
+            "results": results,
+        }
+
+    except requests.exceptions.ConnectionError:
+        return {
+            "success": False,
+            "error": f"Cannot connect to Photon geocoder at {photon_url}. Make sure it's running.",
+            "query": query,
+        }
+    except requests.exceptions.Timeout:
+        return {
+            "success": False,
+            "error": "Geocoding request timed out",
+            "query": query,
+        }
+    except requests.exceptions.RequestException as e:
+        return {
+            "success": False,
+            "error": f"Failed to geocode location: {str(e)}",
+            "query": query,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Unexpected error: {str(e)}",
+            "query": query,
+        }
 
 
 def get_weather(latitude: float, longitude: float) -> Dict[str, Any]:
@@ -426,6 +538,7 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
 
 # Function registry - maps function names to actual Python functions
 FUNCTION_REGISTRY = {
+    "geocode_location": geocode_location,
     "get_weather": get_weather,
     "plan_trip": plan_trip,
     "get_stm_alerts": get_stm_alerts,
