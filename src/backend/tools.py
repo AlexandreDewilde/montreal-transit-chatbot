@@ -93,8 +93,8 @@ TOOLS = [
                     },
                     "mode": {
                         "type": "string",
-                        "description": "Transportation mode: TRANSIT (bus/metro), WALK, BICYCLE, CAR, or TRANSIT,WALK (combined)",
-                        "enum": ["TRANSIT,WALK", "WALK", "BICYCLE", "CAR", "TRANSIT"],
+                        "description": "Transportation mode: TRANSIT (bus/metro/REM), WALK, BICYCLE (includes BIXI bike-share with rental stations), or TRANSIT,WALK (combined)",
+                        "enum": ["TRANSIT,WALK", "WALK", "BICYCLE", "TRANSIT"],
                     },
                     "arrive_by": {
                         "type": "boolean",
@@ -319,20 +319,20 @@ def plan_trip(
     max_walk_distance: float = 800,
 ) -> Dict[str, Any]:
     """
-    Plan a trip using OpenTripPlanner 2.x GraphQL API
+    Plan a trip using OpenTripPlanner 2.x GraphQL API with BIXI support
 
     Args:
         from_lat: Starting latitude
         from_lon: Starting longitude
         to_lat: Destination latitude
         to_lon: Destination longitude
-        mode: Transportation mode (TRANSIT,WALK, WALK, BICYCLE, CAR)
+        mode: Transportation mode (TRANSIT,WALK, WALK, BICYCLE with BIXI)
         arrive_by: If True, time is arrival time; if False, departure time
         time: Time in ISO format, or None for current time
         max_walk_distance: Maximum walking distance in meters
 
     Returns:
-        Dictionary with trip itineraries
+        Dictionary with trip itineraries including BIXI options
     """
     try:
         # OpenTripPlanner 2.x GraphQL endpoint
@@ -350,13 +350,26 @@ def plan_trip(
         # Format as ISO 8601 string for GraphQL
         time_str = dt.strftime("%Y-%m-%dT%H:%M:%S")
 
+        # Build transportModes based on requested mode
+        # IMPORTANT: Always include BICYCLE with RENT qualifier to get BIXI options
+        transport_modes = []
+        if mode == "WALK":
+            transport_modes = ["{mode: WALK}"]
+        elif mode == "BICYCLE":
+            transport_modes = ["{mode: BICYCLE, qualifier: RENT}", "{mode: WALK}"]
+        else:  # TRANSIT,WALK or TRANSIT (default) - include BIXI as option
+            transport_modes = ["{mode: WALK}", "{mode: TRANSIT}", "{mode: BICYCLE, qualifier: RENT}"]
+
+        transport_modes_str = ", ".join(transport_modes)
+
         # GraphQL query for trip planning (OTP 2.x syntax)
         query = f"""
         {{
           plan(
             from: {{lat: {from_lat}, lon: {from_lon}}}
             to: {{lat: {to_lat}, lon: {to_lon}}}
-            numItineraries: 3
+            transportModes: [{transport_modes_str}]
+            numItineraries: 5
             date: "{time_str}"
             arriveBy: {"true" if arrive_by else "false"}
           ) {{
@@ -371,15 +384,28 @@ def plan_trip(
                 endTime
                 duration
                 distance
+                rentedBike
                 from {{
                   name
                   lat
                   lon
+                  bikeRentalStation {{
+                    stationId
+                    name
+                    bikesAvailable
+                    spacesAvailable
+                  }}
                 }}
                 to {{
                   name
                   lat
                   lon
+                  bikeRentalStation {{
+                    stationId
+                    name
+                    bikesAvailable
+                    spacesAvailable
+                  }}
                 }}
                 route {{
                   shortName
@@ -435,6 +461,10 @@ def plan_trip(
                     end_dt = datetime.fromtimestamp(end_time_ms / 1000, tz=ZoneInfo("America/Montreal"))
                     end_time_readable = end_dt.strftime("%H:%M")
 
+                # Extract BIXI station info if available
+                from_station = leg.get("from", {}).get("bikeRentalStation")
+                to_station = leg.get("to", {}).get("bikeRentalStation")
+
                 leg_info = {
                     "mode": leg.get("mode"),
                     "from": leg.get("from", {}).get("name"),
@@ -447,7 +477,25 @@ def plan_trip(
                     "route": leg.get("route", {}).get("shortName") if leg.get("route") else None,
                     "routeLongName": leg.get("route", {}).get("longName") if leg.get("route") else None,
                     "headsign": leg.get("trip", {}).get("tripHeadsign") if leg.get("trip") else None,
+                    "rentedBike": leg.get("rentedBike", False),
                 }
+
+                # Add BIXI station info if this leg involves bike rental
+                if from_station:
+                    leg_info["fromBixiStation"] = {
+                        "stationId": from_station.get("stationId"),
+                        "name": from_station.get("name"),
+                        "bikesAvailable": from_station.get("bikesAvailable"),
+                        "spacesAvailable": from_station.get("spacesAvailable"),
+                    }
+
+                if to_station:
+                    leg_info["toBixiStation"] = {
+                        "stationId": to_station.get("stationId"),
+                        "name": to_station.get("name"),
+                        "bikesAvailable": to_station.get("bikesAvailable"),
+                        "spacesAvailable": to_station.get("spacesAvailable"),
+                    }
                 legs.append(leg_info)
 
             itinerary_info = {
