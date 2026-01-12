@@ -1,0 +1,16 @@
+services:
+  photon:
+    image: rtuszik/photon-docker:latest
+    container_name: photon-geocoder
+    environment:
+      - UPDATE_STRATEGY=PARALLEL
+      - UPDATE_INTERVAL=720h # Check for updates every 30 days
+      - REGION=ca # Restrict to North America (smaller data)
+    volumes:
+      - photon_data:/photon/data
+    restart: unless-stopped
+    ports:
+      - "2322:2322"
+
+volumes:
+  photon_data:

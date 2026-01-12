@@ -47,10 +47,20 @@ echo ""
 # Stop OTP
 if docker ps | grep -q otp-montreal; then
     echo "Stopping OpenTripPlanner..."
-    docker-compose -f docker-compose.otp.yml down
+    docker compose -f docker-compose.otp.yml down
     echo "✓ OTP stopped"
 else
     echo "OTP not running"
+fi
+echo ""
+
+# Stop Photon
+if docker ps | grep -q photon-geocoder; then
+    echo "Stopping Photon Geocoder..."
+    docker compose -f docker-compose.photon.yml down
+    echo "✓ Photon stopped"
+else
+    echo "Photon not running"
 fi
 echo ""
 

@@ -40,12 +40,24 @@ if ! command -v uv &> /dev/null; then
     exit 1
 fi
 
-echo "Step 1: Starting OpenTripPlanner"
+echo "Step 1: Starting Photon Geocoder"
+echo "================================="
+echo ""
+
+# Start Photon
+docker compose -f docker-compose.photon.yml up -d
+
+echo "✓ Photon container started"
+echo "  Note: First start will download Canada data (~8GB)"
+echo "  API will be available at: http://localhost:2322"
+echo ""
+
+echo "Step 2: Starting OpenTripPlanner"
 echo "================================="
 echo ""
 
 # Start OTP
-docker-compose -f docker-compose.otp.yml up -d
+docker compose -f docker-compose.otp.yml up -d
 
 echo "✓ OTP container started"
 echo "  Waiting for graph to build (this may take 5-10 minutes)..."
@@ -66,7 +78,7 @@ done
 echo "  API available at: http://localhost:8080/otp/routers/default"
 echo ""
 
-echo "Step 2: Starting Backend API"
+echo "Step 3: Starting Backend API"
 echo "============================="
 echo ""
 
@@ -85,7 +97,7 @@ echo ""
 # Wait for backend to start
 sleep 3
 
-echo "Step 3: Starting Frontend"
+echo "Step 4: Starting Frontend"
 echo "========================="
 echo ""
 
@@ -106,11 +118,13 @@ echo "All Services Started!"
 echo "=========================================="
 echo ""
 echo "Services:"
+echo "  - Photon:   http://localhost:2322"
 echo "  - OTP:      http://localhost:8080"
 echo "  - Backend:  ${API_URL}"
 echo "  - Frontend: http://localhost:${FRONTEND_PORT}"
 echo ""
 echo "Logs:"
+echo "  - Photon:   docker logs -f photon-geocoder"
 echo "  - OTP:      docker logs -f otp-montreal"
 echo "  - Backend:  tail -f backend.log"
 echo "  - Frontend: tail -f frontend.log"
