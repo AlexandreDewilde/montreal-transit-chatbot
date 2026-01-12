@@ -2,7 +2,7 @@
 
 Welcome to MTL Finder, an intelligent travel assistant for Montreal!
 
-MTL finder is a chatbot application that use LLM (mistral) and OpenTripPlanner to provide users with personalized travel recommendations in Montreal.
+MTL Finder is a chatbot application that combines Mistral AI, OpenTripPlanner, Photon geocoding, and real-time STM data to provide users with personalized travel recommendations in Montreal.
 
 ## Live Version
 
@@ -29,8 +29,15 @@ You can access a live version of MTL Finder here: [https://mtl-finder.alexandred
     -   [System Prompt Strategy](docs/ARCHITECTURE.md#system-prompt-strategy)
     -   [Dependencies](docs/ARCHITECTURE.md#dependencies)
 
+## Key Features
+
+-   ✅ **Intelligent Geocoding**: Photon (OSM-based) converts location names to coordinates
+-   ✅ **Multi-Modal Routing**: Metro, bus, bike (BIXI), walking, and combinations
+-   ✅ **Real-Time Data**: Live STM transit updates and delays
+-   ✅ **Weather Integration**: Weather-aware route recommendations
+-   ✅ **Natural Language**: Conversational interface powered by Mistral AI
+
 ## Future Enhancements
 
--   [ ] BIXI integration (real-time availability and routing)
 -   [ ] Rideshare integration (Uber, Lyft)
 -   [ ] Clothing/shoe recommendations based on weather conditions

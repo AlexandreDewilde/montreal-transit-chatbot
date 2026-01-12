@@ -6,6 +6,7 @@ This document contains important conventions, rules, and project structure infor
 
 MTL Finder is an intelligent travel assistant for Montreal that combines:
 - **Mistral AI** for natural language understanding and responses
+- **Photon** for geocoding (converting location names to coordinates)
 - **OpenTripPlanner (OTP)** for multi-modal route planning
 - **STM GTFS-RT** for real-time transit updates
 - **BIXI GBFS** for bike-share availability
@@ -156,18 +157,25 @@ Routing parameters:
 
 ### Backend Tools (src/backend/tools.py)
 
-Three Mistral AI function calling tools:
+Four Mistral AI function calling tools:
 
-1. **get_weather(latitude, longitude)**
+1. **geocode_location(query, limit=1)**
+   - Uses Photon geocoder (OSM-based)
+   - Converts location names/addresses to coordinates
+   - **CRITICAL**: Always used before plan_trip to avoid hardcoded coordinates
+   - Returns latitude, longitude, and location metadata
+
+2. **get_weather(latitude, longitude)**
    - Uses Open-Meteo API
    - Returns current weather conditions
 
-2. **plan_trip(from_lat, from_lon, to_lat, to_lon, mode)**
+3. **plan_trip(from_lat, from_lon, to_lat, to_lon, mode)**
    - Uses OTP GraphQL API
    - Modes: TRANSIT,WALK, WALK, BICYCLE, CAR, TRANSIT
    - Returns 3 route options with real-time data
+   - **Note**: Coordinates must come from geocode_location
 
-3. **get_stm_alerts(route_type)**
+4. **get_stm_alerts(route_type)**
    - Uses STM GTFS-RT tripUpdates endpoint
    - Extracts delays > 2 minutes
    - Filters by: 'metro', 'bus', or 'all'
@@ -175,10 +183,11 @@ Three Mistral AI function calling tools:
 ### System Prompt Strategy
 
 The agent is instructed to:
-1. Check STM alerts FIRST
-2. Check weather
-3. Plan the trip
-4. Present options considering both weather and alerts
+1. **Geocode destination** using geocode_location (NEVER guess coordinates)
+2. Check STM alerts FIRST
+3. Check weather
+4. Plan the trip using geocoded coordinates
+5. Present options considering weather and alerts
 
 ## Dependencies
 
