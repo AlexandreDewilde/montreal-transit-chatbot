@@ -114,7 +114,7 @@ curl -L "https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pb
   -o otp-data/quebec.osm.pbf
 
 echo "Creating build-config.json..."
-cat > otp-data/build-config.json <<EOF
+cat > otp-data/build-config.json <<'EOF'
 {
   "areaVisibility": true,
   "parentStopLinking": true,
@@ -123,21 +123,40 @@ cat > otp-data/build-config.json <<EOF
   "boardingLocationTags": [
     "ref",
     "name"
-  ],
+  ]
+}
+EOF
+
+echo "Creating otp-config.json (real-time updaters for OTP 2.x)..."
+cat > otp-data/otp-config.json <<EOF
+{
+  "otpFeatures": {
+    "SandboxAPIGeocoder": false,
+    "SandboxAPIMapboxVectorTilesApi": false
+  },
   "updaters": [
     {
       "type": "vehicle-rental",
       "sourceType": "gbfs",
       "network": "BIXI",
       "url": "https://gbfs.velobixi.com/gbfs/gbfs.json",
-      "frequencySec": 60
+      "frequency": "1m"
+    },
+    {
+      "type": "real-time-alerts",
+      "frequency": "30s",
+      "url": "https://api.stm.info/pub/od/gtfs-rt/ic/v2/alerts",
+      "feedId": "STM",
+      "headers": {
+        "apikey": "${STM_API_KEY}"
+      }
     },
     {
       "type": "stop-time-updater",
-      "frequencySec": 30,
-      "sourceType": "gtfs-http",
+      "frequency": "30s",
       "url": "https://api.stm.info/pub/od/gtfs-rt/ic/v2/tripUpdates",
       "feedId": "STM",
+      "fuzzyTripMatching": true,
       "headers": {
         "apikey": "${STM_API_KEY}"
       }
