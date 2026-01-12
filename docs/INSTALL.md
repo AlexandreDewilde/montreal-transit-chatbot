@@ -13,7 +13,7 @@ Before you begin, ensure you have the following installed:
   ```bash
   curl -LsSf https://astral.sh/uv/install.sh | sh
   ```
-- **[Docker](https://docs.docker.com/get-docker/)**: For running the OpenTripPlanner service.
+- **[Docker](https://docs.docker.com/get-docker/)**: For running OpenTripPlanner and Photon geocoding services.
 
 ## API Keys
 
@@ -195,3 +195,26 @@ This setup involves downloading transit data and creating configuration files.
           "requestLogFile": "/var/otp/requestLog.csv"
         }
         ```
+
+### 5. Set Up Photon Geocoding
+
+Photon converts location names to coordinates using OpenStreetMap data.
+
+1.  **Start Photon**:
+    ```bash
+    docker compose -f docker-compose.photon.yml up -d
+    ```
+
+2.  **Wait for initialization**:
+    The first startup will download Canada geocoding data (~8GB, takes ~10 minutes).
+    Monitor the logs:
+    ```bash
+    docker logs -f photon-geocoder
+    ```
+    Wait until you see: `Photon startup successful`
+
+3.  **Verify the service**:
+    Test the geocoding API:
+    ```bash
+    curl "http://localhost:2322/api?q=Old+Montreal"
+    ```
