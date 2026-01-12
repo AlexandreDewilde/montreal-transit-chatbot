@@ -51,6 +51,9 @@ uv.lock
 *.log
 logs/
 
+# Process IDs
+*.pid
+
 # Testing
 .pytest_cache/
 .coverage

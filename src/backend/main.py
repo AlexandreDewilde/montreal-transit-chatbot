@@ -21,9 +21,11 @@ load_dotenv(dotenv_path=env_path)
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 app = FastAPI(title="MTL Finder Chat API")
 
@@ -223,19 +225,27 @@ User: "How do I get to Old Montreal?"
             for msg in sessions[message.session_id]
         ])
 
-        # Call Mistral API with tools
+        # Call Mistral API with tools - loop to handle multiple rounds of tool calls
+        max_iterations = 10  # Prevent infinite loops
+        iteration = 0
+
         response = mistral_client.chat.complete(
             model=MISTRAL_MODEL,
             messages=mistral_messages,
             tools=TOOLS,
         )
 
-        # Handle tool calls if needed
-        assistant_message_obj = response.choices[0].message
+        # Loop to handle multiple rounds of tool calls
+        while iteration < max_iterations:
+            iteration += 1
+            assistant_message_obj = response.choices[0].message
 
-        # Check if model wants to call tools
-        if assistant_message_obj.tool_calls:
-            logger.info(f"🔧 Model requested {len(assistant_message_obj.tool_calls)} tool call(s)")
+            # Check if model wants to call tools
+            if not assistant_message_obj.tool_calls:
+                # No more tool calls, we're done
+                break
+
+            logger.info(f"🔄 Iteration {iteration}: Model requested {len(assistant_message_obj.tool_calls)} tool call(s)")
 
             # Add assistant's tool call message to conversation
             tool_call_message = {
