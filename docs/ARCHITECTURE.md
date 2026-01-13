@@ -91,11 +91,21 @@ The AI agent's decision-making process is guided by a specific system prompt str
 5.  **Present options**: It presents the trip options, considering weather conditions and STM alerts.
 6.  **Anti-hallucination**: The agent is strictly instructed to ONLY present routes returned by the API, never inventing bus numbers or schedules.
 
+## Logging
+
+The backend uses Python's standard logging with **uvicorn's colored formatter** for consistent, readable output:
+
+-   **Colored output**: DEBUG (cyan), INFO (green), WARNING (yellow), ERROR (red), CRITICAL (bright red)
+-   **Configurable levels**: Set via `LOG_LEVEL` in `.env` (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+-   **Comprehensive coverage**: All tools, endpoints, and services include structured logging
+-   **INFO level**: Shows key events (sessions, tool calls, completions, errors)
+-   **DEBUG level**: Shows detailed information (arguments, results, internal details)
+
 ## Dependencies
 
 ### Backend Dependencies (`src/backend/pyproject.toml`)
 -   `fastapi`: Web framework for building the API.
--   `uvicorn`: ASGI server for running FastAPI.
+-   `uvicorn`: ASGI server for running FastAPI (provides colored logging formatter).
 -   `mistralai`: Python client for the Mistral AI API.
 -   `requests`: HTTP library for making external API calls.
 -   `python-dotenv`: For loading environment variables.

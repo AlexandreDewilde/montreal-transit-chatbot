@@ -112,6 +112,9 @@ Required variables in `.env`:
 API_URL=http://localhost:8000
 API_PORT=8000
 
+# Logging (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+LOG_LEVEL=INFO
+
 # Frontend
 FRONTEND_PORT=8501
 
@@ -122,6 +125,21 @@ MISTRAL_MODEL=mistral-small-latest
 # STM Real-time API
 STM_API_KEY=your_key_here
 ```
+
+### Logging Levels
+
+The backend uses Python's standard logging with uvicorn's colored formatter:
+
+- **DEBUG**: Very verbose - shows all tool calls, arguments, results, and internal details
+- **INFO**: Moderate verbosity - shows key events (new sessions, tool names, errors, completions)
+- **WARNING**: Minimal - shows only warnings and errors
+- **ERROR**: Errors only
+- **CRITICAL**: Critical errors only
+
+**Recommended settings:**
+- Development: `LOG_LEVEL=DEBUG` (see everything)
+- Production: `LOG_LEVEL=INFO` (balanced logging)
+- Troubleshooting: `LOG_LEVEL=DEBUG` (diagnose issues)
 
 ### Getting API Keys
 
