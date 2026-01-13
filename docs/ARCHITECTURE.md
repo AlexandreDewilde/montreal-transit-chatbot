@@ -91,6 +91,26 @@ The AI agent's decision-making process is guided by a specific system prompt str
 5.  **Present options**: It presents the trip options, considering weather conditions and STM alerts.
 6.  **Anti-hallucination**: The agent is strictly instructed to ONLY present routes returned by the API, never inventing bus numbers or schedules.
 
+## Conversation History Architecture
+
+The system maintains conversation state at two levels:
+
+**Session Store** (`main.py`):
+- Stores only user/assistant messages (final outputs)
+- Persisted in-memory for the session lifecycle
+- Used for displaying conversation history to users
+
+**Mistral Messages** (`chat.py`):
+- Ephemeral: rebuilt from session store on each request
+- Includes system prompt, user messages, and **current turn's** tool calls/results
+- Previous tool calls are **not persisted** between turns
+
+**Trade-off Discussion**:
+- **Current approach**: Minimal token usage, loses tool call history between turns
+- **Full history**: Store all tool calls/results in session → better context, avoid redundant calls, but higher token costs
+- **Hybrid**: Keep last N tool calls or summarize previous tool usage
+- **Current choice**: Optimize for cost over context preservation
+
 ## Logging
 
 The backend uses Python's standard logging with **uvicorn's colored formatter** for consistent, readable output:
