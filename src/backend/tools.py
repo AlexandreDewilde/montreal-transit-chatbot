@@ -3,12 +3,13 @@ Tools for Mistral AI function calling
 """
 
 import requests
-import os
 import logging
 from typing import Any, Dict, Optional
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from google.transit import gtfs_realtime_pb2
+
+from config import get_settings
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -178,8 +179,9 @@ def geocode_location(query: str, limit: int = 1) -> Dict[str, Any]:
     """
     logger.debug(f"📍 Geocoding location: '{query}' (limit={limit})")
     try:
-        # Get Photon URL from environment
-        photon_url = os.getenv("PHOTON_URL", "http://localhost:2322")
+        # Get Photon URL from settings
+        settings = get_settings()
+        photon_url = settings.photon_url
         api_endpoint = f"{photon_url}/api"
         logger.debug(f"Using Photon API endpoint: {api_endpoint}")
 
@@ -589,11 +591,12 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
     """
     logger.debug(f"🚨 Getting STM alerts (filter: {route_type})")
     try:
-        # Get API key from environment
-        api_key = os.getenv("STM_API_KEY")
+        # Get API key from settings
+        settings = get_settings()
+        api_key = settings.stm_api_key
 
         if not api_key:
-            logger.error("❌ STM_API_KEY not set in environment")
+            logger.error("❌ STM_API_KEY not set in settings")
             return {
                 "error": "STM_API_KEY not set. Get your API key at: https://portail.developpeurs.stm.info/apihub"
             }

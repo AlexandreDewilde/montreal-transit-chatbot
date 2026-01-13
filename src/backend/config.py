@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     mistral_api_key: Optional[str] = Field(default=None, alias="MISTRAL_API_KEY")
     mistral_model: str = Field(default="mistral-small-latest", alias="MISTRAL_MODEL")
 
+    # STM API Configuration
+    stm_api_key: Optional[str] = Field(default=None, alias="STM_API_KEY")
+
+    # Photon Geocoder Configuration
+    photon_url: str = Field(default="http://localhost:2322", alias="PHOTON_URL")
+
     # Logging Configuration
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
