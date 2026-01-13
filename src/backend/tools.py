@@ -4,10 +4,14 @@ Tools for Mistral AI function calling
 
 import requests
 import os
+import logging
 from typing import Any, Dict, Optional
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from google.transit import gtfs_realtime_pb2
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 
 # Tool definitions for Mistral API
@@ -139,12 +143,13 @@ def get_current_datetime() -> Dict[str, Any]:
     Returns:
         Dictionary with current datetime information in Montreal timezone
     """
+    logger.debug("🕐 Getting current datetime for Montreal timezone")
     try:
         # Get current time in Montreal timezone
         montreal_tz = ZoneInfo("America/Montreal")
         now = datetime.now(montreal_tz)
 
-        return {
+        result = {
             "success": True,
             "datetime": now.isoformat(),
             "date": now.strftime("%Y-%m-%d"),
@@ -153,7 +158,10 @@ def get_current_datetime() -> Dict[str, Any]:
             "timezone": "America/Montreal",
             "readable": now.strftime("%A, %B %d, %Y at %I:%M %p"),
         }
+        logger.debug(f"✅ Current time: {result['readable']}")
+        return result
     except Exception as e:
+        logger.error(f"❌ Failed to get current datetime: {str(e)}")
         return {"success": False, "error": f"Failed to get current datetime: {str(e)}"}
 
 
@@ -168,10 +176,12 @@ def geocode_location(query: str, limit: int = 1) -> Dict[str, Any]:
     Returns:
         Dictionary with geocoding results containing coordinates and location info
     """
+    logger.debug(f"📍 Geocoding location: '{query}' (limit={limit})")
     try:
         # Get Photon URL from environment
         photon_url = os.getenv("PHOTON_URL", "http://localhost:2322")
         api_endpoint = f"{photon_url}/api"
+        logger.debug(f"Using Photon API endpoint: {api_endpoint}")
 
         # Request parameters
         params = {
@@ -188,6 +198,7 @@ def geocode_location(query: str, limit: int = 1) -> Dict[str, Any]:
         features = data.get("features", [])
 
         if not features:
+            logger.warning(f"⚠️  No geocoding results found for '{query}'")
             return {
                 "success": False,
                 "error": f"No results found for '{query}'",
@@ -215,6 +226,10 @@ def geocode_location(query: str, limit: int = 1) -> Dict[str, Any]:
                 }
                 results.append(result)
 
+        logger.debug(f"✅ Found {len(results)} location(s) for '{query}'")
+        if results:
+            logger.debug(f"First result: {results[0]['name']} at ({results[0]['latitude']}, {results[0]['longitude']})")
+
         return {
             "success": True,
             "query": query,
@@ -223,24 +238,28 @@ def geocode_location(query: str, limit: int = 1) -> Dict[str, Any]:
         }
 
     except requests.exceptions.ConnectionError:
+        logger.error(f"❌ Cannot connect to Photon geocoder at {photon_url}")
         return {
             "success": False,
             "error": f"Cannot connect to Photon geocoder at {photon_url}. Make sure it's running.",
             "query": query,
         }
     except requests.exceptions.Timeout:
+        logger.error(f"❌ Geocoding request timed out for '{query}'")
         return {
             "success": False,
             "error": "Geocoding request timed out",
             "query": query,
         }
     except requests.exceptions.RequestException as e:
+        logger.error(f"❌ Geocoding request failed: {str(e)}")
         return {
             "success": False,
             "error": f"Failed to geocode location: {str(e)}",
             "query": query,
         }
     except Exception as e:
+        logger.error(f"❌ Unexpected error in geocode_location: {str(e)}", exc_info=True)
         return {
             "success": False,
             "error": f"Unexpected error: {str(e)}",
@@ -259,6 +278,7 @@ def get_weather(latitude: float, longitude: float) -> Dict[str, Any]:
     Returns:
         Dictionary with weather information
     """
+    logger.debug(f"🌤️  Getting weather for location ({latitude}, {longitude})")
     try:
         # Open-Meteo API endpoint
         url = "https://api.open-meteo.com/v1/forecast"
@@ -271,6 +291,7 @@ def get_weather(latitude: float, longitude: float) -> Dict[str, Any]:
             "timezone": "auto",
         }
 
+        logger.debug("Fetching weather from Open-Meteo API")
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
 
@@ -296,11 +317,15 @@ def get_weather(latitude: float, longitude: float) -> Dict[str, Any]:
             "location": f"Lat: {latitude}, Lon: {longitude}",
         }
 
+        logger.debug(f"✅ Weather: {result['temperature']}°C, feels like {result['feels_like']}°C")
+
         return result
 
     except requests.exceptions.RequestException as e:
+        logger.error(f"❌ Failed to fetch weather data: {str(e)}")
         return {"error": f"Failed to fetch weather data: {str(e)}"}
     except Exception as e:
+        logger.error(f"❌ Unexpected error in get_weather: {str(e)}", exc_info=True)
         return {"error": f"Unexpected error: {str(e)}"}
 
 
@@ -330,6 +355,7 @@ def plan_trip(
     Returns:
         Dictionary with trip itineraries including BIXI options
     """
+    logger.info(f"🚌 Planning trip: ({from_lat}, {from_lon}) -> ({to_lat}, {to_lon}) [mode={mode}]")
     try:
         # OpenTripPlanner 2.x GraphQL endpoint
         otp_url = "http://localhost:8080/otp/gtfs/v1"
@@ -422,6 +448,7 @@ def plan_trip(
 
         payload = {"query": query}
 
+        logger.debug(f"Sending GraphQL request to OTP at {otp_url}")
         response = requests.post(
             otp_url,
             json=payload,
@@ -434,13 +461,16 @@ def plan_trip(
 
         # Check for GraphQL errors
         if "errors" in data:
+            error_msg = data['errors'][0].get('message', 'Unknown error')
+            logger.error(f"❌ OTP GraphQL error: {error_msg}")
             return {
-                "error": f"GraphQL error: {data['errors'][0].get('message', 'Unknown error')}"
+                "error": f"GraphQL error: {error_msg}"
             }
 
         # Extract itineraries
         plan = data.get("data", {}).get("plan", {})
         if not plan or "itineraries" not in plan or not plan["itineraries"]:
+            logger.warning("⚠️  No routes found for this trip")
             return {"error": "No routes found for this trip"}
 
         itineraries = []
@@ -519,6 +549,10 @@ def plan_trip(
             }
             itineraries.append(itinerary_info)
 
+        logger.debug(f"✅ Found {len(itineraries)} itinerary option(s)")
+        durations = [f"{it['duration_minutes']} min" for it in itineraries]
+        logger.debug(f"Trip durations: {durations}")
+
         return {
             "success": True,
             "from": {"lat": from_lat, "lon": from_lon},
@@ -528,14 +562,18 @@ def plan_trip(
         }
 
     except requests.exceptions.ConnectionError:
+        logger.error("❌ Cannot connect to OpenTripPlanner at http://localhost:8080")
         return {
             "error": "Cannot connect to OpenTripPlanner. Make sure it's running at http://localhost:8080"
         }
     except requests.exceptions.Timeout:
+        logger.error("❌ Request to OpenTripPlanner timed out")
         return {"error": "Request to OpenTripPlanner timed out"}
     except requests.exceptions.RequestException as e:
+        logger.error(f"❌ Failed to fetch route data: {str(e)}")
         return {"error": f"Failed to fetch route data: {str(e)}"}
     except Exception as e:
+        logger.error(f"❌ Unexpected error in plan_trip: {str(e)}", exc_info=True)
         return {"error": f"Unexpected error: {str(e)}"}
 
 
@@ -549,11 +587,13 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
     Returns:
         Dictionary with current alerts and disruptions
     """
+    logger.debug(f"🚨 Getting STM alerts (filter: {route_type})")
     try:
         # Get API key from environment
         api_key = os.getenv("STM_API_KEY")
 
         if not api_key:
+            logger.error("❌ STM_API_KEY not set in environment")
             return {
                 "error": "STM_API_KEY not set. Get your API key at: https://portail.developpeurs.stm.info/apihub"
             }
@@ -564,12 +604,14 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
 
         headers = {"apikey": api_key}
 
+        logger.debug(f"Fetching STM GTFS-RT data from {alerts_url}")
         response = requests.get(alerts_url, headers=headers, timeout=10)
         response.raise_for_status()
 
         # Parse GTFS-RT protobuf data
         feed = gtfs_realtime_pb2.FeedMessage()
         feed.ParseFromString(response.content)
+        logger.debug(f"Parsed {len(feed.entity)} GTFS-RT entities")
 
         # Extract delays from trip updates
         delays = {}  # route_id -> list of delays
@@ -641,6 +683,10 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
             }
             alerts.append(alert_info)
 
+        logger.debug(f"✅ Found {len(alerts)} STM alert(s) for {route_type}")
+        if alerts:
+            logger.debug(f"Affected routes: {[a['affected_routes'] for a in alerts]}")
+
         return {
             "success": True,
             "count": len(alerts),
@@ -649,8 +695,10 @@ def get_stm_alerts(route_type: str = "all") -> Dict[str, Any]:
         }
 
     except requests.exceptions.RequestException as e:
+        logger.error(f"❌ Failed to fetch STM alerts: {str(e)}")
         return {"error": f"Failed to fetch STM alerts: {str(e)}"}
     except Exception as e:
+        logger.error(f"❌ Unexpected error in get_stm_alerts: {str(e)}", exc_info=True)
         return {"error": f"Unexpected error: {str(e)}"}
 
 
@@ -676,11 +724,14 @@ def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         Result from the tool execution
     """
     if tool_name not in FUNCTION_REGISTRY:
+        logger.error(f"❌ Unknown tool requested: {tool_name}")
         return {"error": f"Unknown tool: {tool_name}"}
 
     try:
+        logger.debug(f"Executing tool: {tool_name}")
         func = FUNCTION_REGISTRY[tool_name]
         result = func(**arguments)
         return result
     except Exception as e:
+        logger.error(f"❌ Error executing {tool_name}: {str(e)}", exc_info=True)
         return {"error": f"Error executing {tool_name}: {str(e)}"}
