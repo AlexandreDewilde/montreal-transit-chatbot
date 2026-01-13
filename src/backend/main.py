@@ -56,6 +56,7 @@ if mistral_client:
 @app.get("/")
 async def root():
     """Health check endpoint"""
+    logger.debug("Root endpoint accessed")
     return {"message": "MTL Finder Chat API is running", "status": "healthy"}
 
 
@@ -64,13 +65,16 @@ async def create_session():
     """Create a new chat session"""
     session_id = str(uuid.uuid4())
     session_store.create_session(session_id)
+    logger.info(f"🆕 Created new session: {session_id[:8]}...")
     return {"session_id": session_id}
 
 
 @app.get("/session/{session_id}/messages", response_model=ChatResponse)
 async def get_session_messages(session_id: str):
     """Get all messages for a session"""
+    logger.debug(f"Retrieving messages for session: {session_id[:8]}...")
     messages = session_store.get_messages(session_id)
+    logger.debug(f"Found {len(messages)} message(s) in session")
     return {"session_id": session_id, "messages": messages}
 
 
@@ -83,6 +87,7 @@ async def chat(message: Message):
 
     # Check if Mistral client is initialized
     if not mistral_client or not chat_service:
+        logger.error("❌ Mistral API not configured - rejecting chat request")
         raise HTTPException(
             status_code=503,
             detail="Mistral API is not configured. Please set MISTRAL_API_KEY.",
@@ -114,6 +119,7 @@ async def chat(message: Message):
     try:
         # Get session messages
         session_messages = session_store.get_messages(message.session_id)
+        logger.debug(f"Processing message with {len(session_messages)} existing message(s)")
 
         # Process message through chat service
         assistant_content = chat_service.process_message(user_content, session_messages)
@@ -128,6 +134,7 @@ async def chat(message: Message):
 
         # Return all messages
         all_messages = session_store.get_messages(message.session_id)
+        logger.info(f"✅ Chat request completed successfully for session {message.session_id[:8]}...")
         return {
             "session_id": message.session_id,
             "messages": all_messages,
@@ -135,6 +142,7 @@ async def chat(message: Message):
 
     except Exception as e:
         # If Mistral API fails, return error message
+        logger.error(f"❌ Chat processing error: {str(e)}", exc_info=True)
         error_message = {
             "role": "assistant",
             "content": f"Error: {str(e)}",
@@ -150,12 +158,16 @@ async def chat(message: Message):
 @app.delete("/session/{session_id}")
 async def delete_session(session_id: str):
     """Delete a session and its messages"""
+    logger.info(f"🗑️  Deleting session: {session_id[:8]}...")
     if session_store.delete_session(session_id):
+        logger.info(f"✅ Session deleted: {session_id[:8]}...")
         return {"message": "Session deleted"}
+    logger.warning(f"⚠️  Session not found for deletion: {session_id[:8]}...")
     return {"message": "Session not found"}
 
 
 @app.get("/health")
 async def health():
     """Health check endpoint"""
+    logger.debug("Health check endpoint accessed")
     return {"status": "ok"}
