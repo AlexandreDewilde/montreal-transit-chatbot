@@ -68,9 +68,7 @@ class ChatService:
         )
 
         # Loop to handle multiple rounds of tool calls
-        iteration = 0
-        while iteration < self.max_iterations:
-            iteration += 1
+        for iteration in range(1, self.max_iterations + 1):
             assistant_message_obj = response.choices[0].message
 
             # Check if model wants to call tools
@@ -166,6 +164,7 @@ class ChatService:
             mistral_messages.append(system_prompt)
 
         # Add conversation history
+        # avoid including timestamps and other non-Mistral fields
         mistral_messages.extend(
             [
                 {"role": msg["role"], "content": msg["content"]}

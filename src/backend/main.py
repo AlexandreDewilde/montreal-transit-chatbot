@@ -119,7 +119,9 @@ async def chat(message: Message):
     try:
         # Get session messages
         session_messages = session_store.get_messages(message.session_id)
-        logger.debug(f"Processing message with {len(session_messages)} existing message(s)")
+        logger.debug(
+            f"Processing message with {len(session_messages)} existing message(s)"
+        )
 
         # Process message through chat service
         assistant_content = chat_service.process_message(user_content, session_messages)
@@ -134,7 +136,9 @@ async def chat(message: Message):
 
         # Return all messages
         all_messages = session_store.get_messages(message.session_id)
-        logger.info(f"✅ Chat request completed successfully for session {message.session_id[:8]}...")
+        logger.info(
+            f"✅ Chat request completed successfully for session {message.session_id[:8]}..."
+        )
         return {
             "session_id": message.session_id,
             "messages": all_messages,
