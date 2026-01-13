@@ -3,11 +3,13 @@ Configuration and logging setup for MTL Finder backend
 """
 
 import logging
+import sys
 from pathlib import Path
 from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
+from uvicorn.logging import ColourizedFormatter
 
 # Path to .env file in project root
 current_folder = Path(__file__).parent
@@ -67,7 +69,7 @@ def get_settings() -> Settings:
 
 def setup_logging(log_level: str = "INFO") -> logging.Logger:
     """
-    Configure logging with specified level
+    Configure logging with specified level using uvicorn's colored formatter
 
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -80,16 +82,31 @@ def setup_logging(log_level: str = "INFO") -> logging.Logger:
     if not isinstance(level, int):
         level = logging.INFO  # Default to INFO if level is invalid
 
-    # Configure root logger
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler()],
+    # Create colored formatter (same as uvicorn)
+    formatter = ColourizedFormatter(
+        "{levelprefix} {name} - {message}",
+        style="{",
+        use_colors=True
     )
 
-    # Create and configure logger for this module
+    # Create console handler with colored formatter
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+    root_logger.handlers.clear()  # Clear existing handlers
+    root_logger.addHandler(console_handler)
+
+    # Configure uvicorn loggers to use same level
+    logging.getLogger("uvicorn").setLevel(level)
+    logging.getLogger("uvicorn.error").setLevel(level)
+    logging.getLogger("uvicorn.access").setLevel(level)
+
+    # Create logger for this module
     logger = logging.getLogger(__name__)
-    logger.setLevel(level)
+    logger.info(f"✅ Logging configured with level: {log_level}")
 
     return logger
 
