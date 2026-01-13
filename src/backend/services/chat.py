@@ -76,6 +76,7 @@ class ChatService:
             # Check if model wants to call tools
             if not assistant_message_obj.tool_calls:
                 # No more tool calls, we're done
+                self.logger.debug(f"No more tool calls requested. Iteration complete.")
                 break
 
             self.logger.info(
@@ -105,12 +106,13 @@ class ChatService:
                 # Parse arguments
                 try:
                     arguments = json.loads(tool_call.function.arguments)
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
+                    self.logger.warning(f"⚠️  Failed to parse tool arguments: {e}")
                     arguments = {}
 
                 # Log tool call details
                 self.logger.info(f"📞 Calling tool: {tool_call.function.name}")
-                self.logger.info(f"📋 Arguments: {json.dumps(arguments, indent=2)}")
+                self.logger.debug(f"📋 Arguments: {json.dumps(arguments, indent=2)}")
 
                 # Execute the tool
                 tool_result = execute_tool(tool_call.function.name, arguments)
@@ -118,9 +120,9 @@ class ChatService:
                 # Log tool result (truncate if too long)
                 result_str = json.dumps(tool_result, indent=2)
                 if len(result_str) > 500:
-                    self.logger.info(f"✅ Result (truncated): {result_str[:500]}...")
+                    self.logger.debug(f"✅ Result (truncated): {result_str[:500]}...")
                 else:
-                    self.logger.info(f"✅ Result: {result_str}")
+                    self.logger.debug(f"✅ Result: {result_str}")
 
                 # Add tool result to messages
                 tool_message = {
@@ -140,6 +142,7 @@ class ChatService:
 
         # Extract final assistant response
         assistant_content = response.choices[0].message.content
+        self.logger.info(f"✅ Chat processing complete after {iteration} iteration(s)")
         return assistant_content
 
     def _build_mistral_messages(self, session_messages: List[dict]) -> List[dict]:
@@ -156,6 +159,7 @@ class ChatService:
 
         # Add system prompt if this is the first message
         if len(session_messages) == 1:
+            self.logger.debug("Loading system prompt for new conversation")
             with open(self.prompt_file_path) as f:
                 prompt = f.read()
             system_prompt = {"role": "system", "content": prompt}
