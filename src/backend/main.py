@@ -30,7 +30,7 @@ app.add_middleware(
 
 # Initialize Mistral client
 if not settings.mistral_api_key:
-    logger.warning("MISTRAL_API_KEY not set. Chat will not work properly.")
+    logger.critical("❌ MISTRAL_API_KEY not set. Chat will not work.")
     mistral_client = None
 else:
     mistral_client = Mistral(api_key=settings.mistral_api_key)
