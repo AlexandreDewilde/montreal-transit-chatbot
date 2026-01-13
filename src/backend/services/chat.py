@@ -76,7 +76,7 @@ class ChatService:
             # Check if model wants to call tools
             if not assistant_message_obj.tool_calls:
                 # No more tool calls, we're done
-                self.logger.debug(f"No more tool calls requested. Iteration complete.")
+                self.logger.debug("No more tool calls requested. Iteration complete.")
                 break
 
             self.logger.info(
