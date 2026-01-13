@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # Photon Geocoder Configuration
     photon_url: str = Field(default="http://localhost:2322", alias="PHOTON_URL")
 
+    # OpenTripPlanner Configuration
+    otp_url: str = Field(default="http://localhost:8080/otp/gtfs/v1", alias="OTP_URL")
+
     # Logging Configuration
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 

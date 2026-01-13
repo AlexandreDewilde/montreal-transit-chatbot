@@ -359,8 +359,9 @@ def plan_trip(
     """
     logger.info(f"🚌 Planning trip: ({from_lat}, {from_lon}) -> ({to_lat}, {to_lon}) [mode={mode}]")
     try:
-        # OpenTripPlanner 2.x GraphQL endpoint
-        otp_url = "http://localhost:8080/otp/gtfs/v1"
+        # Get OTP URL from settings
+        settings = get_settings()
+        otp_url = settings.otp_url
 
         # Format time for GraphQL (use current time if not provided)
         if time:
@@ -564,9 +565,10 @@ def plan_trip(
         }
 
     except requests.exceptions.ConnectionError:
-        logger.error("❌ Cannot connect to OpenTripPlanner at http://localhost:8080")
+        settings = get_settings()
+        logger.error(f"❌ Cannot connect to OpenTripPlanner at {settings.otp_url}")
         return {
-            "error": "Cannot connect to OpenTripPlanner. Make sure it's running at http://localhost:8080"
+            "error": f"Cannot connect to OpenTripPlanner. Make sure it's running at {settings.otp_url}"
         }
     except requests.exceptions.Timeout:
         logger.error("❌ Request to OpenTripPlanner timed out")

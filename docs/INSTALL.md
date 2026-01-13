@@ -86,6 +86,8 @@ Open the `.env` file and and add your API keys:
 # Backend
 API_URL=http://localhost:8000
 API_PORT=8000
+LOG_LEVEL=INFO
+CORS_ORIGINS=http://localhost:8501,http://127.0.0.1:8501
 
 # Frontend
 FRONTEND_PORT=8501
@@ -96,6 +98,10 @@ MISTRAL_MODEL=mistral-small-latest
 
 # STM Real-time API
 STM_API_KEY=your_stm_key_here
+
+# Services
+PHOTON_URL=http://localhost:2322
+OTP_URL=http://localhost:8080/otp/gtfs/v1
 ```
 
 ### 3. Install Dependencies

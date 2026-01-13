@@ -84,6 +84,9 @@ STM_API_KEY=${STM_API_KEY}
 
 # Photon Geocoding Service
 PHOTON_URL=http://localhost:2322
+
+# OpenTripPlanner Service
+OTP_URL=http://localhost:8080/otp/gtfs/v1
 EOF
 
     echo "✓ .env file created successfully!"
