@@ -36,8 +36,13 @@ class ChatService:
         self.client = mistral_client
         self.model = model
         self.max_iterations = max_iterations
-        self.prompt_file_path = prompt_file_path
         self.logger = logger
+
+        # Load system prompt once at initialization
+        self.logger.debug(f"Loading system prompt from {prompt_file_path}")
+        with open(prompt_file_path) as f:
+            self.system_prompt = f.read()
+        self.logger.info(f"✅ System prompt loaded ({len(self.system_prompt)} characters)")
 
     def process_message(
         self,
@@ -145,7 +150,7 @@ class ChatService:
 
     def _build_mistral_messages(self, session_messages: List[dict]) -> List[dict]:
         """
-        Build Mistral API message list with system prompt if needed
+        Build Mistral API message list with system prompt
 
         Args:
             session_messages: Conversation history for this session
@@ -155,13 +160,9 @@ class ChatService:
         """
         mistral_messages = []
 
-        # Add system prompt if this is the first message
-        if len(session_messages) == 1:
-            self.logger.debug("Loading system prompt for new conversation")
-            with open(self.prompt_file_path) as f:
-                prompt = f.read()
-            system_prompt = {"role": "system", "content": prompt}
-            mistral_messages.append(system_prompt)
+        # ALWAYS add system prompt to maintain context
+        system_prompt = {"role": "system", "content": self.system_prompt}
+        mistral_messages.append(system_prompt)
 
         # Add conversation history
         # avoid including timestamps and other non-Mistral fields
