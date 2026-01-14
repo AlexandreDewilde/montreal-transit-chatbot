@@ -10,7 +10,6 @@ from config import PAGE_TITLE, PAGE_ICON, LAYOUT, APP_TITLE, APP_CAPTION
 from state import SessionState
 from api_client import APIClient
 from components import (
-    render_location_handler,
     render_quick_actions,
     render_chat_interface,
     render_sidebar,
@@ -69,9 +68,6 @@ def main() -> None:
 
     # Render header
     render_header()
-
-    # Handle location acquisition
-    render_location_handler()
 
     # Render quick action buttons (if no messages)
     render_quick_actions()
