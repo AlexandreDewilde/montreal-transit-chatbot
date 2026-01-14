@@ -55,6 +55,6 @@ def display_location_status() -> None:
                     st.rerun()
             else:
                 # Location failed or was denied
-                st.warning("⚠️ Location sharing is not available on this device or was denied.")
+                st.warning("⚠️ Location not enabled (click the button) or not supported on this device.")
 
         st.caption("💡 You can also specify your starting point in your message.")
