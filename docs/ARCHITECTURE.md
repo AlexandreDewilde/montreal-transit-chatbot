@@ -54,7 +54,7 @@ mistral-project/
 
 ## Tools Architecture
 
-The backend (`src/backend/tools.py`) implements five Mistral AI function calling tools:
+The backend implements five Mistral AI function calling tools (defined in `src/backend/tools/definitions.py`, implementations in `src/backend/tools/`):
 
 1.  **`get_current_datetime()`**
     -   Returns current date and time in Montreal timezone (America/Montreal).
@@ -72,9 +72,16 @@ The backend (`src/backend/tools.py`) implements five Mistral AI function calling
 
 4.  **`plan_trip(from_lat, from_lon, to_lat, to_lon, mode, time, arrive_by)`**
     -   Interacts with the OTP GraphQL API.
-    -   Supports various modes: `TRANSIT,WALK`, `WALK`, `BICYCLE` (includes BIXI bike-share), `TRANSIT`.
+    -   Supports multiple transportation modes:
+        -   `ALL` (default): All modes - transit (bus/metro/REM), walk, and BIXI bike-share
+        -   `TRANSIT`: Transit + walk only (no BIXI)
+        -   `WALK`: Walking only
+        -   `BICYCLE`: BIXI bike-share only
+        -   `NO_BUS`: Metro/REM + walk + BIXI (excludes buses)
+        -   `NO_METRO`: Bus + walk + BIXI (excludes metro/REM)
     -   Provides up to 5 route options with real-time data and BIXI availability.
     -   Coordinates must come from `geocode_location` tool.
+    -   LLM intelligently selects mode based on user preferences (e.g., "avoid buses" → NO_BUS).
 
 5.  **`get_stm_alerts(route_type)`**
     -   Fetches data from the STM GTFS-RT `tripUpdates` endpoint.

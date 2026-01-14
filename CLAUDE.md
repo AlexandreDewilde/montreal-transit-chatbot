@@ -189,9 +189,16 @@ Four Mistral AI function calling tools:
 
 3. **plan_trip(from_lat, from_lon, to_lat, to_lon, mode)**
    - Uses OTP GraphQL API
-   - Modes: TRANSIT,WALK, WALK, BICYCLE, CAR, TRANSIT
-   - Returns 3 route options with real-time data
+   - Modes:
+     * `ALL` (default): All modes - transit (bus/metro/REM), walk, BIXI
+     * `TRANSIT`: Transit + walk (no BIXI)
+     * `WALK`: Walking only
+     * `BICYCLE`: BIXI bike-share only
+     * `NO_BUS`: Metro/REM + walk + BIXI (excludes buses)
+     * `NO_METRO`: Bus + walk + BIXI (excludes metro/REM)
+   - Returns up to 5 route options with real-time data
    - **Note**: Coordinates must come from geocode_location
+   - LLM selects mode based on user preferences (e.g., "avoid buses" → NO_BUS)
 
 4. **get_stm_alerts(route_type)**
    - Uses STM GTFS-RT tripUpdates endpoint
