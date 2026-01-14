@@ -42,3 +42,4 @@ You can access a live version of MTL Finder here: [https://mtl-finder.alexandred
 -   [ ] Rideshare integration (Uber, Lyft)
 -   [ ] Clothing/shoe recommendations based on weather conditions
 -   [ ] Add real-time REM GTFS train data
+-   [ ] Detect if device not location services compatible for better user experience
