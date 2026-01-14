@@ -25,30 +25,46 @@ mistral-project/
 │   │   ├── main.py          # FastAPI app initialization and routes
 │   │   ├── config.py        # Configuration and logging setup
 │   │   ├── models.py        # Pydantic models for API requests/responses
-│   │   ├── tools.py         # Mistral AI function calling tools
 │   │   ├── prompt.txt       # System prompt for Mistral AI agent
 │   │   ├── services/        # Business logic layer
 │   │   │   ├── session.py   # Session storage management
 │   │   │   └── chat.py      # Mistral AI chat orchestration
+│   │   ├── tools/           # Mistral AI function calling tools
+│   │   │   ├── definitions.py    # Tool schemas for Mistral API
+│   │   │   ├── registry.py       # Tool execution registry
+│   │   │   ├── routing_tool.py   # Trip planning with OTP
+│   │   │   ├── geocoding_tool.py # Location geocoding
+│   │   │   ├── weather_tool.py   # Weather data
+│   │   │   ├── transit_tool.py   # STM alerts
+│   │   │   └── datetime_tool.py  # Current datetime
 │   │   └── pyproject.toml   # Backend dependencies (managed by uv)
-│   └── frontend/            # Streamlit frontend
-│       ├── main.py          # UI with geolocation
+│   └── frontend/            # Streamlit frontend (componentized)
+│       ├── main.py          # UI application entry point
+│       ├── config.py        # Frontend configuration
+│       ├── state.py         # Session state management
+│       ├── api_client.py    # Backend API client
+│       ├── components/      # UI components
+│       │   ├── chat.py      # Chat interface component
+│       │   ├── location.py  # Geolocation component
+│       │   ├── quick_actions.py  # Quick action buttons
+│       │   └── sidebar.py   # Sidebar component
 │       └── pyproject.toml   # Frontend dependencies (managed by uv)
 ├── otp-data/                # OpenTripPlanner data (gitignored)
-│   └── graphs/montreal/
-│       ├── build-config.json    # OTP build configuration
-│       ├── router-config.json   # OTP routing parameters
-│       ├── stm.gtfs.zip         # STM transit data
-│       └── quebec.osm.pbf       # Quebec street network
+│   ├── build-config.json    # OTP build configuration
+│   ├── router-config.json   # OTP routing parameters
+│   ├── stm.gtfs.zip         # STM transit data
+│   └── quebec.osm.pbf       # Quebec street network
 ├── docs/                    # Documentation
-│   └── ARCHITECTURE.md      # This file
+│   ├── ARCHITECTURE.md      # This file
+│   ├── INSTALL.md           # Installation guide
+│   └── RUN.md               # Running the application
+├── .env                     # Environment variables (gitignored)
 ├── .env.example             # Environment template
-├── docker-compose.otp.yml   # Docker compose for OTP
+├── docker-compose.otp.yml   # OTP Docker configuration
+├── docker-compose.photon.yml # Photon geocoder Docker configuration
 ├── setup.sh                 # Complete installation script
-├── start.sh                 # Script to start backend and frontend
-├── stop.sh                  # Script to stop services
-├── start-otp.sh             # Script to start OpenTripPlanner
-├── restart-otp.sh           # Script to restart OpenTripPlanner
+├── start.sh                 # Start all services (OTP, backend, frontend)
+├── stop.sh                  # Stop all services
 └── CLAUDE.md                # Development conventions and guidelines
 ```
 
@@ -117,6 +133,56 @@ The system maintains conversation state at two levels:
 - **Full history**: Store all tool calls/results in session → better context, avoid redundant calls, but higher token costs
 - **Hybrid**: Keep last N tool calls or summarize previous tool usage
 - **Current choice**: Optimize for cost over context preservation
+
+## Frontend Architecture
+
+The frontend is built with Streamlit and follows a componentized architecture:
+
+### Component Structure (`src/frontend/components/`)
+
+1.  **`chat.py`** - Chat Interface Component
+    -   Renders message history with user/assistant bubbles
+    -   Handles message input and submission
+    -   Manages chat UI state and scrolling
+
+2.  **`location.py`** - Geolocation Component
+    -   Uses `streamlit-geolocation` to get browser GPS coordinates
+    -   Displays current location to user
+    -   Automatically includes coordinates in API requests
+
+3.  **`quick_actions.py`** - Quick Action Buttons
+    -   Pre-defined common queries (e.g., "Get to Old Montreal")
+    -   One-click shortcuts for popular destinations
+    -   Improves user experience for common use cases
+
+4.  **`sidebar.py`** - Sidebar Component
+    -   Session management (new/clear session)
+    -   Application information and links
+    -   Settings and configuration options
+
+### Supporting Modules
+
+-   **`api_client.py`** - Backend API Client
+    -   Centralized HTTP requests to FastAPI backend
+    -   Session management and message history retrieval
+    -   Error handling and response parsing
+
+-   **`state.py`** - Session State Management
+    -   Manages Streamlit session state
+    -   Tracks session ID, messages, and UI state
+    -   Provides state initialization and reset functions
+
+-   **`config.py`** - Frontend Configuration
+    -   Loads environment variables (API URL, port)
+    -   Centralized configuration management
+
+### User Flow
+
+1.  User opens app → Frontend requests browser location
+2.  User sends message → Frontend calls backend API with location context
+3.  Backend processes message with Mistral AI and tools
+4.  Frontend displays streaming response in chat interface
+5.  Conversation history persisted in backend session store
 
 ## Logging
 

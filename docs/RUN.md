@@ -93,19 +93,16 @@ chmod +x stop.sh
 ### Restart OTP
 To restart the OTP service, for example, after configuration changes.
 ```bash
-chmod +x restart.sh
-./restart.sh
+docker-compose -f docker-compose.otp.yml restart
 ```
-*(Alternatively, you can use `docker-compose -f docker-compose.otp.yml restart`)*
 
 ### Rebuild OTP Graph
-If you update the GTFS or OSM data in `otp-data/graphs/montreal/`, you need to rebuild the OTP graph.
+If you update the GTFS or OSM data in `otp-data/`, you need to rebuild the OTP graph.
 ```bash
-# First, stop OTP
-chmod +x stop.sh
+# Stop OTP
 ./stop.sh
-# Then, start OTP again to trigger a rebuild
-chmod +x start-otp.sh
+
+# Start OTP again to trigger a rebuild
 ./start.sh
 ```
 *(Alternatively: `docker-compose -f docker-compose.otp.yml down` followed by `docker-compose -f docker-compose.otp.yml up -d`)*
