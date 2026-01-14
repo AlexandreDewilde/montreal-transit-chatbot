@@ -18,7 +18,7 @@ def plan_trip(
     from_lon: float,
     to_lat: float,
     to_lon: float,
-    mode: str = "TRANSIT,WALK",
+    mode: str = "ALL",
     arrive_by: bool = False,
     time: Optional[str] = None,
     max_walk_distance: float = 800,
@@ -31,7 +31,14 @@ def plan_trip(
         from_lon: Starting longitude
         to_lat: Destination latitude
         to_lon: Destination longitude
-        mode: Transportation mode (TRANSIT,WALK, WALK, BICYCLE with BIXI)
+        mode: Transportation mode options:
+            - "ALL" (default): All modes (transit, walk, BIXI)
+            - "TRANSIT": Transit + walk (no BIXI)
+            - "TRANSIT_BIXI": Transit + walk + BIXI (same as ALL)
+            - "WALK": Walking only
+            - "BICYCLE": BIXI bike-share only
+            - "NO_BUS": Metro/REM + walk + BIXI (no buses)
+            - "NO_METRO": Bus + walk + BIXI (no metro)
         arrive_by: If True, time is arrival time; if False, departure time
         time: Time in ISO format, or None for current time
         max_walk_distance: Maximum walking distance in meters
@@ -50,7 +57,7 @@ def plan_trip(
         # Format time for GraphQL (use current time if not provided)
         if time:
             try:
-                dt = datetime.fromisoformat(time.replace("Z", "+00:00"))
+                dt: datetime = datetime.fromisoformat(time.replace("Z", "+00:00"))
             except ValueError:
                 dt = datetime.now()
         else:
@@ -60,78 +67,18 @@ def plan_trip(
         time_str = dt.strftime("%Y-%m-%dT%H:%M:%S")
 
         # Build transportModes based on requested mode
-        # IMPORTANT: Always include BICYCLE with RENT qualifier to get BIXI options
-        transport_modes = []
-        if mode == "WALK":
-            transport_modes = ["{mode: WALK}"]
-        elif mode == "BICYCLE":
-            transport_modes = ["{mode: BICYCLE, qualifier: RENT}", "{mode: WALK}"]
-        else:  # TRANSIT,WALK or TRANSIT (default) - include BIXI as option
-            transport_modes = [
-                "{mode: WALK}",
-                "{mode: TRANSIT}",
-                "{mode: BICYCLE, qualifier: RENT}",
-            ]
+        transport_modes_str = _build_transport_modes(mode)
 
-        transport_modes_str = ", ".join(transport_modes)
-
-        # GraphQL query for trip planning (OTP 2.x syntax)
-        query = f"""
-        {{
-          plan(
-            from: {{lat: {from_lat}, lon: {from_lon}}}
-            to: {{lat: {to_lat}, lon: {to_lon}}}
-            transportModes: [{transport_modes_str}]
-            numItineraries: 5
-            date: "{time_str}"
-            arriveBy: {"true" if arrive_by else "false"}
-          ) {{
-            itineraries {{
-              startTime
-              endTime
-              duration
-              walkDistance
-              legs {{
-                mode
-                startTime
-                endTime
-                duration
-                distance
-                rentedBike
-                from {{
-                  name
-                  lat
-                  lon
-                  bikeRentalStation {{
-                    stationId
-                    name
-                    bikesAvailable
-                    spacesAvailable
-                  }}
-                }}
-                to {{
-                  name
-                  lat
-                  lon
-                  bikeRentalStation {{
-                    stationId
-                    name
-                    bikesAvailable
-                    spacesAvailable
-                  }}
-                }}
-                route {{
-                  shortName
-                  longName
-                }}
-                trip {{
-                  tripHeadsign
-                }}
-              }}
-            }}
-          }}
-        }}
-        """
+        # Build GraphQL query
+        query = _build_graphql_query(
+            from_lat=from_lat,
+            from_lon=from_lon,
+            to_lat=to_lat,
+            to_lon=to_lon,
+            transport_modes_str=transport_modes_str,
+            time_str=time_str,
+            arrive_by=arrive_by,
+        )
 
         payload = {"query": query}
 
@@ -261,3 +208,131 @@ def plan_trip(
     except Exception as e:
         logger.error(f"❌ Unexpected error in plan_trip: {str(e)}", exc_info=True)
         return {"error": f"Unexpected error: {str(e)}"}
+
+
+def _build_transport_modes(mode: str) -> str:
+    """
+    Build the transportModes array string based on the requested mode.
+
+    Args:
+        mode: Transportation mode preference
+
+    Returns:
+        Comma-separated string of transport mode objects for GraphQL
+    """
+    mode = mode.upper()
+
+    if mode == "WALK":
+        transport_modes = ["{mode: WALK}"]
+    elif mode == "BICYCLE":
+        # BIXI only (bike-share with walk to/from stations)
+        transport_modes = ["{mode: BICYCLE, qualifier: RENT}", "{mode: WALK}"]
+    elif mode == "TRANSIT":
+        # Transit + walk (no BIXI)
+        transport_modes = ["{mode: WALK}", "{mode: TRANSIT}"]
+    elif mode == "NO_BUS":
+        # Metro/REM only (no buses), with walk and BIXI
+        transport_modes = [
+            "{mode: WALK}",
+            "{mode: RAIL}",  # Metro and REM
+            "{mode: SUBWAY}",  # Metro specifically
+            "{mode: BICYCLE, qualifier: RENT}",
+        ]
+    elif mode == "NO_METRO":
+        # Bus only (no metro/REM), with walk and BIXI
+        transport_modes = [
+            "{mode: WALK}",
+            "{mode: BUS}",
+            "{mode: BICYCLE, qualifier: RENT}",
+        ]
+    else:  # "ALL", "TRANSIT_BIXI", or default
+        # All modes: transit (bus, metro, REM), walk, and BIXI
+        transport_modes = [
+            "{mode: WALK}",
+            "{mode: TRANSIT}",
+            "{mode: BICYCLE, qualifier: RENT}",
+        ]
+
+    return ", ".join(transport_modes)
+
+
+def _build_graphql_query(
+    from_lat: float,
+    from_lon: float,
+    to_lat: float,
+    to_lon: float,
+    transport_modes_str: str,
+    time_str: str,
+    arrive_by: bool,
+) -> str:
+    """
+    Build the GraphQL query for trip planning.
+
+    Args:
+        from_lat: Starting latitude
+        from_lon: Starting longitude
+        to_lat: Destination latitude
+        to_lon: Destination longitude
+        transport_modes_str: Comma-separated transport modes string
+        time_str: ISO datetime string
+        arrive_by: Whether time is arrival time
+
+    Returns:
+        Formatted GraphQL query string
+    """
+    return f"""
+    {{
+      plan(
+        from: {{lat: {from_lat}, lon: {from_lon}}}
+        to: {{lat: {to_lat}, lon: {to_lon}}}
+        transportModes: [{transport_modes_str}]
+        numItineraries: 5
+        date: "{time_str}"
+        arriveBy: {"true" if arrive_by else "false"}
+      ) {{
+        itineraries {{
+          startTime
+          endTime
+          duration
+          walkDistance
+          legs {{
+            mode
+            startTime
+            endTime
+            duration
+            distance
+            rentedBike
+            from {{
+              name
+              lat
+              lon
+              bikeRentalStation {{
+                stationId
+                name
+                bikesAvailable
+                spacesAvailable
+              }}
+            }}
+            to {{
+              name
+              lat
+              lon
+              bikeRentalStation {{
+                stationId
+                name
+                bikesAvailable
+                spacesAvailable
+              }}
+            }}
+            route {{
+              shortName
+              longName
+            }}
+            trip {{
+              tripHeadsign
+            }}
+          }}
+        }}
+      }}
+    }}
+    """

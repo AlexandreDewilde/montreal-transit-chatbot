@@ -84,8 +84,8 @@ TOOLS = [
                     },
                     "mode": {
                         "type": "string",
-                        "description": "Transportation mode: TRANSIT (bus/metro/REM), WALK, BICYCLE (includes BIXI bike-share with rental stations), or TRANSIT,WALK (combined)",
-                        "enum": ["TRANSIT,WALK", "WALK", "BICYCLE", "TRANSIT"],
+                        "description": "Transportation mode - choose based on user preferences: ALL (default - all modes including transit, walk, BIXI), TRANSIT (transit+walk, no bikes), WALK (walking only), BICYCLE (BIXI bike-share only), NO_BUS (metro/REM only, excludes buses), NO_METRO (bus only, excludes metro/REM). Default to ALL unless user expresses preference.",
+                        "enum": ["ALL", "TRANSIT", "WALK", "BICYCLE", "NO_BUS", "NO_METRO"],
                     },
                     "arrive_by": {
                         "type": "boolean",
