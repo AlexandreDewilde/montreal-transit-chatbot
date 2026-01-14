@@ -12,6 +12,12 @@ MTL Finder is a chatbot application that combines Mistral AI, OpenTripPlanner, P
 ### Example: Bike Route Planning
 ![Bike Route Example](docs/images/demo/example_bike.gif)
 
+### Example Screenshots
+
+| Weather | Multi-Modal Planning |
+|:---------------------:|:--------------------:|
+| ![Weather Example](docs/images/demo/weather-fairmount.png) | ![Route Example](docs/images/demo/st-viateur-to-deli.png) |
+
 ## Live Version
 
 You can access a live version of MTL Finder here: [https://mtl-finder.alexandredewilde.com/](https://mtl-finder.alexandredewilde.com/)
