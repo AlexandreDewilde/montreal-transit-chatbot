@@ -4,6 +4,14 @@ Welcome to MTL Finder, an intelligent travel assistant for Montreal!
 
 MTL Finder is a chatbot application that combines Mistral AI, OpenTripPlanner, Photon geocoding, and real-time STM data to provide users with personalized travel recommendations in Montreal.
 
+## Demo
+
+### Example: Transit Route Planning
+![Transit Route Example](docs/images/demo/example1.gif)
+
+### Example: Bike Route Planning
+![Bike Route Example](docs/images/demo/example_bike.gif)
+
 ## Live Version
 
 You can access a live version of MTL Finder here: [https://mtl-finder.alexandredewilde.com/](https://mtl-finder.alexandredewilde.com/)
