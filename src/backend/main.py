@@ -123,16 +123,14 @@ async def chat(message: Message):
             f"Processing message with {len(session_messages)} existing message(s)"
         )
 
-        # Process message through chat service
-        assistant_content = chat_service.process_message(user_content, session_messages)
+        # Process message through chat service (returns content + all tool interaction messages)
+        assistant_content, tool_messages = chat_service.process_message(user_content, session_messages)
 
-        # Add assistant message to session
-        assistant_message = {
-            "role": "assistant",
-            "content": assistant_content,
-            "timestamp": datetime.now().isoformat(),
-        }
-        session_store.add_message(message.session_id, assistant_message)
+        # Add all tool interaction messages to session (preserves tool calls & results for context)
+        for msg in tool_messages:
+            # Add timestamp to each message before storing
+            msg["timestamp"] = datetime.now().isoformat()
+            session_store.add_message(message.session_id, msg)
 
         # Return all messages
         all_messages = session_store.get_messages(message.session_id)

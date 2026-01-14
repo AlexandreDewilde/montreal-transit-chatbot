@@ -48,7 +48,7 @@ class ChatService:
         self,
         user_content: str,
         session_messages: List[dict],
-    ) -> str:
+    ) -> tuple[str, List[dict]]:
         """
         Process a user message through Mistral AI with tool calling
 
@@ -57,13 +57,16 @@ class ChatService:
             session_messages: Conversation history for this session
 
         Returns:
-            Assistant's response content
+            Tuple of (assistant's response content, list of new messages including tool calls/results)
 
         Raises:
             Exception: If Mistral API call fails
         """
         # Build Mistral messages with system prompt
         mistral_messages = self._build_mistral_messages(session_messages)
+
+        # Track new messages to store in session (tool calls + results)
+        new_session_messages = []
 
         # Call Mistral API with tools - loop to handle multiple rounds of tool calls
         response = self.client.chat.complete(
@@ -103,6 +106,7 @@ class ChatService:
                 ],
             }
             mistral_messages.append(tool_call_message)
+            new_session_messages.append(tool_call_message)  # Store for session history
 
             # Execute each tool call
             for tool_call in assistant_message_obj.tool_calls:
@@ -135,6 +139,7 @@ class ChatService:
                     "tool_call_id": tool_call.id,
                 }
                 mistral_messages.append(tool_message)
+                new_session_messages.append(tool_message)  # Store for session history
 
             # Call Mistral again with tool results
             response = self.client.chat.complete(
@@ -145,8 +150,16 @@ class ChatService:
 
         # Extract final assistant response
         assistant_content = response.choices[0].message.content
+
+        # Add final assistant message to session messages
+        final_message = {
+            "role": "assistant",
+            "content": assistant_content,
+        }
+        new_session_messages.append(final_message)
+
         self.logger.info(f"✅ Chat processing complete after {iteration} iteration(s)")
-        return assistant_content
+        return assistant_content, new_session_messages
 
     def _build_mistral_messages(self, session_messages: List[dict]) -> List[dict]:
         """
@@ -164,13 +177,22 @@ class ChatService:
         system_prompt = {"role": "system", "content": self.system_prompt}
         mistral_messages.append(system_prompt)
 
-        # Add conversation history
-        # avoid including timestamps and other non-Mistral fields
-        mistral_messages.extend(
-            [
-                {"role": msg["role"], "content": msg["content"]}
-                for msg in session_messages
-            ]
-        )
+        # Add conversation history, preserving tool calls and tool results
+        for msg in session_messages:
+            # Build message with required fields
+            mistral_msg = {"role": msg["role"], "content": msg["content"]}
+
+            # Preserve tool_calls if present (assistant messages with function calls)
+            if "tool_calls" in msg:
+                mistral_msg["tool_calls"] = msg["tool_calls"]
+
+            # Preserve tool-specific fields (tool result messages)
+            if msg["role"] == "tool":
+                if "name" in msg:
+                    mistral_msg["name"] = msg["name"]
+                if "tool_call_id" in msg:
+                    mistral_msg["tool_call_id"] = msg["tool_call_id"]
+
+            mistral_messages.append(mistral_msg)
 
         return mistral_messages
