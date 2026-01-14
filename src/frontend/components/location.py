@@ -29,7 +29,7 @@ def display_location_status() -> None:
                 st.rerun()
     else:
         # Use columns to put text and button on same line
-        col1, col2 = st.columns([6, 2])
+        col1, col2 = st.columns([4, 2])
 
         with col1:
             st.markdown("**📍 Share location:**")
@@ -39,19 +39,22 @@ def display_location_status() -> None:
             location_data = streamlit_geolocation()
 
         # Check if we got location data (outside columns context)
-        if (
-            location_data
-            and "latitude" in location_data
-            and "longitude" in location_data
-        ):
-            lat = location_data["latitude"]
-            lon = location_data["longitude"]
+        if location_data:
+            if (
+                "latitude" in location_data
+                and "longitude" in location_data
+                and location_data["latitude"]
+                and location_data["longitude"]
+            ):
+                lat = location_data["latitude"]
+                lon = location_data["longitude"]
 
-            # Validate coordinates
-            if lat and lon and (lat != 0.0 or lon != 0.0):
-                st.write(f"🔍 DEBUG: Got location - {lat:.4f}, {lon:.4f}")
-                SessionState.set_user_location(latitude=lat, longitude=lon)
-                st.success(f"✅ Location saved: {lat:.4f}, {lon:.4f}")
-                st.rerun()
+                # Validate coordinates
+                if lat != 0.0 or lon != 0.0:
+                    SessionState.set_user_location(latitude=lat, longitude=lon)
+                    st.rerun()
+            else:
+                # Location failed or was denied
+                st.warning("⚠️ Location sharing is not available on this device or was denied.")
 
         st.caption("💡 You can also specify your starting point in your message.")
