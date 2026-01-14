@@ -77,7 +77,7 @@ FRONTEND_PORT=${FRONTEND_PORT}
 
 # Mistral AI
 MISTRAL_API_KEY=${MISTRAL_API_KEY}
-MISTRAL_MODEL=mistral-small-latest
+MISTRAL_MODEL=mistral-medium-latest
 
 # STM Real-time API
 STM_API_KEY=${STM_API_KEY}
