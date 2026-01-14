@@ -116,23 +116,33 @@ The AI agent's decision-making process is guided by a specific system prompt str
 
 ## Conversation History Architecture
 
-The system maintains conversation state at two levels:
+The system maintains complete conversation history including tool interactions:
 
-**Session Store** (`main.py`):
-- Stores only user/assistant messages (final outputs)
+**Session Store** (`main.py`, `services/session.py`):
+- Stores **all messages**: user, assistant, tool calls, and tool results
 - Persisted in-memory for the session lifecycle
-- Used for displaying conversation history to users
+- Includes timestamps for all messages
+- Used for rebuilding complete context on each request
 
-**Mistral Messages** (`chat.py`):
-- Ephemeral: rebuilt from session store on each request
-- Includes system prompt, user messages, and **current turn's** tool calls/results
-- Previous tool calls are **not persisted** between turns
+**Mistral Messages** (`services/chat.py`):
+- Rebuilt from session store on each request
+- Includes system prompt + full conversation history with tool interactions
+- Preserves `tool_calls` and `tool_call_id` fields when rebuilding context
+- Returns new messages (tool calls + results + final response) to be stored in session
 
-**Trade-off Discussion**:
-- **Current approach**: Minimal token usage, loses tool call history between turns
-- **Full history**: Store all tool calls/results in session → better context, avoid redundant calls, but higher token costs
-- **Hybrid**: Keep last N tool calls or summarize previous tool usage
-- **Current choice**: Optimize for cost over context preservation
+**Why Store Tool Calls?**:
+- **Prevents hallucination**: Agent remembers geocoded coordinates instead of inventing them
+- **Better context**: Agent can reference previous tool results (e.g., "same location as before")
+- **Accurate responses**: Multi-turn conversations maintain factual consistency
+- **Trade-off**: Higher token usage, but critical for accuracy with geocoding and routing
+
+**Implementation Flow**:
+1. User sends message → stored in session
+2. `chat.py` rebuilds full context from session (including previous tool calls)
+3. Mistral calls tools → tool call messages tracked
+4. Tools return results → tool result messages tracked
+5. Mistral responds → final assistant message tracked
+6. All new messages (tool calls + results + response) stored back to session
 
 ## Frontend Architecture
 

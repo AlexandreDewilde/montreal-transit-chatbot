@@ -196,7 +196,28 @@ Routing parameters:
 - Car speed: 40 km/h
 - Max 3 itineraries per request
 
-## Tools Architecture
+## Session & Conversation Architecture
+
+### Session Storage Strategy
+
+**CRITICAL**: The backend stores **complete tool call history** in session storage to prevent coordinate hallucination.
+
+**How it works:**
+1. User sends message → stored as user message in session
+2. Mistral calls tools (e.g., `geocode_location`) → **tool call messages stored in session**
+3. Tools return results → **tool result messages stored in session**
+4. Mistral responds → final assistant message stored in session
+
+**Why this matters:**
+- Without tool history: Agent forgets geocoded coordinates and hallucinates them
+- With tool history: Agent sees previous geocoding results and reuses them correctly
+
+**Implementation:**
+- `chat.py`: Returns tuple `(assistant_content, new_session_messages)` containing all tool interactions
+- `main.py`: Stores all returned messages (tool calls + results + final response) in session
+- `_build_mistral_messages`: Preserves `tool_calls` and `tool_call_id` fields when rebuilding context
+
+This ensures the agent maintains memory of all tool interactions across conversation turns.
 
 ### Backend Tools (src/backend/tools/)
 
