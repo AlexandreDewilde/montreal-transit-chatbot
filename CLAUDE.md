@@ -79,7 +79,8 @@ mistral-project/
 ├── otp-data/                # OpenTripPlanner data (gitignored)
 │   ├── build-config.json    # OTP build configuration
 │   ├── router-config.json   # OTP routing parameters
-│   ├── stm.gtfs.zip         # STM transit data
+│   ├── stm.gtfs.zip         # STM transit data (bus & metro)
+│   ├── rem.gtfs.zip         # REM transit data (light rail)
 │   └── quebec.osm.pbf       # Quebec street network
 ├── docs/                    # Documentation
 ├── .env                     # Environment variables (gitignored)
@@ -278,6 +279,16 @@ cd src/backend && uv add gtfs-realtime-bindings
 ### OTP not showing real-time data
 **Problem**: API key not configured in build-config.json
 **Solution**: Re-run `./setup.sh` after setting STM_API_KEY in .env
+
+### OTP not showing REM routes
+**Problem**: Missing REM GTFS data
+**Solution**: The setup.sh script now downloads both STM and REM GTFS feeds. If REM is missing:
+```bash
+cd otp-data
+curl -L "https://exo.quebec/xdata/rem/google_transit.zip" -o rem.gtfs.zip
+docker-compose -f docker-compose.otp.yml down
+docker-compose -f docker-compose.otp.yml up -d
+```
 
 ## Testing
 

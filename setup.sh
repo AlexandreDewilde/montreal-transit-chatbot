@@ -114,6 +114,10 @@ echo "Downloading STM GTFS data..."
 curl -L "https://www.stm.info/sites/default/files/gtfs/gtfs_stm.zip" \
   -o otp-data/stm.gtfs.zip
 
+echo "Downloading REM GTFS data..."
+curl -L "https://exo.quebec/xdata/rem/google_transit.zip" \
+  -o otp-data/rem.gtfs.zip
+
 echo "Downloading Quebec OSM data..."
 curl -L "https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf" \
   -o otp-data/quebec.osm.pbf
